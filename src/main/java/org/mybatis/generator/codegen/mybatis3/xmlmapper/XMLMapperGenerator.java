@@ -66,26 +66,33 @@ public class XMLMapperGenerator extends AbstractXmlGenerator {
 
         context.getCommentGenerator().addRootComment(answer);
 
+        // 屏蔽不常用的sql, by yepeng, 170825
+        
         addResultMapWithoutBLOBsElement(answer);
         addResultMapWithBLOBsElement(answer);
-        addExampleWhereClauseElement(answer);
-        addMyBatis3UpdateByExampleWhereClauseElement(answer);
         addBaseColumnListElement(answer);
         addBlobColumnListElement(answer);
-        addSelectByExampleWithBLOBsElement(answer);
+        addExampleWhereClauseElement(answer);
+//        addMyBatis3UpdateByExampleWhereClauseElement(answer);
+        
+//        addSelectByExampleWithBLOBsElement(answer);
         addSelectByExampleWithoutBLOBsElement(answer);
         addSelectByPrimaryKeyElement(answer);
+        
+        addCountByExampleElement(answer);
+        
         addDeleteByPrimaryKeyElement(answer);
         addDeleteByExampleElement(answer);
-        addInsertElement(answer);
+        
+//        addInsertElement(answer);
         addInsertSelectiveElement(answer);
-        addCountByExampleElement(answer);
-        addUpdateByExampleSelectiveElement(answer);
-        addUpdateByExampleWithBLOBsElement(answer);
-        addUpdateByExampleWithoutBLOBsElement(answer);
+        
+//        addUpdateByExampleSelectiveElement(answer);
+//        addUpdateByExampleWithBLOBsElement(answer);
+//        addUpdateByExampleWithoutBLOBsElement(answer);
         addUpdateByPrimaryKeySelectiveElement(answer);
-        addUpdateByPrimaryKeyWithBLOBsElement(answer);
-        addUpdateByPrimaryKeyWithoutBLOBsElement(answer);
+//        addUpdateByPrimaryKeyWithBLOBsElement(answer);
+//        addUpdateByPrimaryKeyWithoutBLOBsElement(answer);
 
         return answer;
     }
