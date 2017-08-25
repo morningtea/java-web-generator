@@ -156,6 +156,14 @@ public class Method extends JavaElement {
     public void addBodyLines(int index, Collection<String> lines) {
         bodyLines.addAll(index, lines);
     }
+    
+    /**
+     * @author yepeng
+     * @since 2.0.0
+     */
+    public void removeBodyLines() {
+        bodyLines.clear();
+    }
 
     /**
      * Gets the formatted content.
