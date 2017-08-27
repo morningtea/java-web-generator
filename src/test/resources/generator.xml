@@ -65,7 +65,7 @@
 		
 		<!-- 指定连接字符串 -->
 		<jdbcConnection driverClass="com.mysql.jdbc.Driver"
-			connectionURL="jdbc:mysql://127.0.0.1:3306/test?useUnicode=true&amp;characterEncoding=utf-8&amp;zeroDateTimeBehavior=convertToNull" 
+			connectionURL="jdbc:mysql://rm-wz997gtq7525uvf0do.mysql.rds.aliyuncs.com:3306/test?useUnicode=true&amp;characterEncoding=utf-8&amp;zeroDateTimeBehavior=convertToNull" 
 			userId="test"
 			password="xxTest123@">
 		</jdbcConnection>

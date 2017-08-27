@@ -26,8 +26,8 @@ public class PaginationPlugin extends PluginAdapter {
     @Override
     public boolean modelExampleClassGenerated(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
         // 现在集成 xsili-mybatis-plugin-page 分页插件, change to extends QueryParam
-        topLevelClass.addImportedType(new FullyQualifiedJavaType("com.fpx.mybatis.plugin.model.QueryParam"));
-        topLevelClass.setSuperClass(new FullyQualifiedJavaType("com.fpx.mybatis.plugin.model.QueryParam"));
+        topLevelClass.addImportedType(new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.model.QueryParam"));
+        topLevelClass.setSuperClass(new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.model.QueryParam"));
         
         // add field, getter, setter for Criteria
         // addLimit(topLevelClass, introspectedTable, "page");
