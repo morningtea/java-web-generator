@@ -90,8 +90,15 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
                     .containsProperty(introspectedColumn)) {
                 continue;
             }
-
+            
             Field field = getJavaBeansField(introspectedColumn, context, introspectedTable);
+            
+			// 把数据库列注释添加到model字段注释
+			field.addJavaDocLine("/**");
+			field.addJavaDocLine(" * " + introspectedColumn.getRemarks());
+			field.addJavaDocLine(" */");
+			field.addFormattedJavadoc(new StringBuilder(), 1);
+            
             if (plugins.modelFieldGenerated(field, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.BASE_RECORD)) {
