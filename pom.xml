@@ -84,6 +84,17 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<skip>true</skip>
+					<encoding>${project.build.sourceEncoding}</encoding>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -92,12 +103,15 @@
 		<project.build.resourceEncoding>UTF-8</project.build.resourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	
+		<java.version>1.7</java.version>
 		<mysql.version>5.1.21</mysql.version>
 		
 		<log4j.version>1.2.17</log4j.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
 		<log4j-api.version>2.3</log4j-api.version>
 		<commons-logging.version>1.2</commons-logging.version>
+		
+		<commons-lang.version>3.1</commons-lang.version>
 		
 		<ant.version>1.9.9</ant.version>
 		<javaparser-core.version>2.4.0</javaparser-core.version>
@@ -142,6 +156,12 @@
 			<version>${commons-logging.version}</version>
 			<scope>provided</scope>
 			<optional>true</optional>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>${commons-lang.version}</version>
 		</dependency>
 		
 		<dependency>

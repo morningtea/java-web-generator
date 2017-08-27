@@ -16,7 +16,9 @@
 package org.mybatis.generator.plugins;
 
 import java.util.List;
+import java.util.Properties;
 
+import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.PluginAdapter;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
@@ -24,6 +26,28 @@ import org.mybatis.generator.api.dom.java.Interface;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 
 public class MapperAnnotationPlugin extends PluginAdapter {
+
+	private static final String DEFAULT_ANNOTATION_CLASS = "org.apache.ibatis.annotations.Mapper";
+	private static final String DEFAULT_ANNOTATION_NAME = "@Mapper";
+
+	private String annotationClass;
+	private String annotationName;
+
+	@Override
+	public void setProperties(Properties properties) {
+		super.setProperties(properties);
+		String annotationClass = properties.getProperty("annotationClass");
+		String annotationName = properties.getProperty("annotationName");
+		if (StringUtils.isBlank(annotationClass) && StringUtils.isBlank(annotationName)) {
+			this.annotationClass = DEFAULT_ANNOTATION_CLASS;
+			this.annotationName = DEFAULT_ANNOTATION_NAME;
+		} else if (StringUtils.isNotBlank(annotationClass) && StringUtils.isNotBlank(annotationName)) {
+			this.annotationClass = annotationClass;
+			this.annotationName = annotationName;
+		} else {
+			throw new RuntimeException("annotationClass annotationName 需配对设置");
+		}
+	}
 
     @Override
     public boolean validate(List<String> warnings) {
@@ -33,9 +57,8 @@ public class MapperAnnotationPlugin extends PluginAdapter {
     @Override
     public boolean clientGenerated(Interface interfaze, TopLevelClass topLevelClass,
             IntrospectedTable introspectedTable) {
-
-        interfaze.addImportedType(new FullyQualifiedJavaType("org.apache.ibatis.annotations.Mapper")); //$NON-NLS-1$
-        interfaze.addAnnotation("@Mapper"); //$NON-NLS-1$
+        interfaze.addImportedType(new FullyQualifiedJavaType(annotationClass)); //$NON-NLS-1$
+        interfaze.addAnnotation(annotationName); //$NON-NLS-1$
         return true;
     }
 }
