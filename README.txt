@@ -15,26 +15,24 @@
 ====
 
 ===============================================================================
-Overview
---------
-MyBatis Generator (MBG) is a code generator for the MyBatis (and iBATIS) SQL
-mapping framework.  MBG will introspect database tables (through JDBC
-DatabaseMetaData) and generate SQL Map XML files, Java model object (POJOs)
-that match the table, and (optionally) Java client classes that use the other
-generated objects.
 
-For full documentation, please refer to the user's manual at
-docs/index.html in this distribution.
+#### Overview
+本项目基于mybatis-generator-core进行构建, 主要更新如下:
 
-Dependencies
-------------
-There are no dependencies beyond the JRE.  JRE 5.0 or above is required.
-Also required is a JDBC driver that implements the DatabaseMetaData interface,
-especially the "getColumns" and "getPrimaryKeys" methods.
+1. 添加了SpringMvcController, Service, MapperJunitTest三个代码生成插件
+2. 对原有功能进行了增强:  
+a) Model添加字段注释(对应数据库列的注释)  
+b) 为Mapper类添加@Repository注解(可配置)
 
-Support
--------
-Support is provided through the user mailing list.  Mail
-questions or bug reports to:
 
-  mybatis-user@googlegroups.com
+#### How to start
+1. 配置test/resources/generator.xml. 包括数据库连接, 需要生成的表, 及其他可选配置
+2. 以junit的方式运行test/java/generator/MyBatisGeneratorTest.java
+3. 把生成的文件copy到自己的工程
+
+
+#### 其他说明
+1. src/site 是mybatis-generator-core-1.3.6的官方文档
+2. 支持MySQL, Oracle, PostgreSQL等数据库, 只要该数据库的JDBC驱动实现了DatabaseMetaData接口,
+特别是"getColumns"和"getPrimaryKeys"方法
+

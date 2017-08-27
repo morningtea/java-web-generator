@@ -39,12 +39,13 @@
 		</plugin>
 		
         <!-- controller代码生成 -->
-		<!-- <plugin type="org.mybatis.generator.plugins.SpringMvcControllerPlugin" >
+		<plugin type="org.mybatis.generator.plugins.SpringMvcControllerPlugin" >
 			<property name="targetProject" value="src/main/java" />
 			<property name="targetPackage" value="com.xsili.module.controller" />
 			<property name="targetPackageService" value="com.xsili.module.service" />
-			<property name="abstractController" value="com.xsili.module.service.impl.AutoIncrementServiceImpl2" />
-		</plugin> -->
+			<property name="abstractController" value="com.xsili.controller.AbstractController" />
+			<property name="resultModel" value="org.mybatis.generator.project.model.Result" />
+		</plugin>
 		
 		<!-- mapper测试代码生成  targetPackage与对应的实体生成保持一致 -->
 		<plugin type="org.mybatis.generator.plugins.MybatisMapperJunitPlugin" >
