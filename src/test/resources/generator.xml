@@ -36,6 +36,7 @@
 			<property name="targetProject" value="src/main/java" />
 			<property name="targetPackage" value="com.xsili.module.service" />
 			<property name="targetPackageImpl" value="com.xsili.module.service.impl" />
+			<property name="businessException" value="org.mybatis.generator.outputdependence.exception.BusinessException" />
 		</plugin>
 		
         <!-- controller代码生成 -->

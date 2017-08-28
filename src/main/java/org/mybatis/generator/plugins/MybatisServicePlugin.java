@@ -3,6 +3,7 @@ package org.mybatis.generator.plugins;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
@@ -38,6 +39,7 @@ public class MybatisServicePlugin extends PluginAdapter {
 	private FullyQualifiedJavaType modelWithBLOBsType;
 	private FullyQualifiedJavaType modelCriteriaType;
 	private FullyQualifiedJavaType modelSubCriteriaType;
+	private FullyQualifiedJavaType BusinessExceptionType;
 
 	private FullyQualifiedJavaType listType;
 	private FullyQualifiedJavaType pagerType;
@@ -68,6 +70,12 @@ public class MybatisServicePlugin extends PluginAdapter {
 		pagerType = new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.model.Pager");
 		pagerUtilType = new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.util.PagerUtil");
 
+		String businessExceptionName = properties.getProperty("businessException");
+		if(StringUtils.isNotBlank(businessExceptionName)) {
+		    BusinessExceptionType = new FullyQualifiedJavaType(businessExceptionName);
+		} else {
+		    BusinessExceptionType = new FullyQualifiedJavaType("java.lang.RuntimeException");
+		}
 		annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
 		annotationService = new FullyQualifiedJavaType("org.springframework.stereotype.Service");
 
@@ -206,6 +214,7 @@ public class MybatisServicePlugin extends PluginAdapter {
 		topLevelClass.addImportedType(modelWithBLOBsType);
 		topLevelClass.addImportedType(modelCriteriaType);
 		topLevelClass.addImportedType(modelSubCriteriaType);
+		topLevelClass.addImportedType(BusinessExceptionType);
 
 		topLevelClass.addImportedType(listType);
 		topLevelClass.addImportedType(pagerType);
@@ -256,7 +265,7 @@ public class MybatisServicePlugin extends PluginAdapter {
 			}
 		}
 		method.addBodyLine("if(this." + getMapper() + "insertSelective(" + modelParamName + ") == 0) {");
-		method.addBodyLine("throw new RuntimeException(\"插入数据库失败\");");
+		method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"插入数据库失败\");");
 		method.addBodyLine("}");
 		method.addBodyLine("return " + modelParamName + ";");
 		return method;
@@ -290,7 +299,7 @@ public class MybatisServicePlugin extends PluginAdapter {
 			}
 		}
 		method.addBodyLine("if(this." + getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ") == 0) {");
-		method.addBodyLine("throw new RuntimeException(\"记录不存在\");");
+		method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"记录不存在\");");
 		method.addBodyLine("}");
 		method.addBodyLine("return " + modelParamName + ";");
 
