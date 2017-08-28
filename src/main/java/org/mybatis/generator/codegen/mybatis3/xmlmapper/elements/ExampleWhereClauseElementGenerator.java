@@ -24,6 +24,7 @@ import org.mybatis.generator.api.dom.xml.XmlElement;
 
 /**
  * 
+ * TODO 支持criterion.or
  * @author Jeff Butler
  * 
  */

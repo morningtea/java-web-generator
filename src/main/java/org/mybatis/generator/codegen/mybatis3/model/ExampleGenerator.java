@@ -40,6 +40,7 @@ import org.mybatis.generator.codegen.mybatis3.MyBatis3FormattingUtilities;
 
 /**
  * 
+ * TODO 支持criterion.or
  * @author Jeff Butler
  * 
  */
