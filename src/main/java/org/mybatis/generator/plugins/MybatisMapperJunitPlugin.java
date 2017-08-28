@@ -3,6 +3,7 @@ package org.mybatis.generator.plugins;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
@@ -47,6 +48,9 @@ public class MybatisMapperJunitPlugin extends PluginAdapter {
 		targetProject = properties.getProperty("targetProject");
 		targetPackage = properties.getProperty("targetPackage");
 		superTestCase = properties.getProperty("superTestCase");
+		if(StringUtils.isBlank(superTestCase)) {
+		    throw new RuntimeException("property superTestCase is null");
+		}
 		modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
 		return true;
 	}
@@ -114,13 +118,7 @@ public class MybatisMapperJunitPlugin extends PluginAdapter {
 		List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
 		List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
 		for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
-			boolean isPrimaryKey = false;
-			for (IntrospectedColumn primaryKeyColumn : primaryKeyColumns) {
-				if (introspectedColumn == primaryKeyColumn) {
-					isPrimaryKey = true;
-					break;
-				}
-			}
+		    boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
 
 			// 非自增主键, 默认使用UUID
 			if (isPrimaryKey) {

@@ -2,6 +2,7 @@ package org.mybatis.generator.plugins;
 
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.CommentGenerator;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.PluginAdapter;
@@ -23,12 +24,25 @@ import org.mybatis.generator.api.dom.xml.XmlElement;
  */
 public class PaginationPlugin extends PluginAdapter {
 
+    private FullyQualifiedJavaType queryParamType;
+
+    public boolean validate(List<String> warnings) {
+        String queryParam = properties.getProperty("queryParam");
+        if (StringUtils.isBlank(queryParam)) {
+            throw new RuntimeException("property queryParam is null");
+        } else {
+            queryParamType = new FullyQualifiedJavaType(queryParam);
+        }
+
+        return true;
+    }
+
     @Override
     public boolean modelExampleClassGenerated(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
         // 现在集成 xsili-mybatis-plugin-page 分页插件, change to extends QueryParam
-        topLevelClass.addImportedType(new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.model.QueryParam"));
-        topLevelClass.setSuperClass(new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.model.QueryParam"));
-        
+        topLevelClass.addImportedType(queryParamType);
+        topLevelClass.setSuperClass(queryParamType);
+
         // add field, getter, setter for Criteria
         // addLimit(topLevelClass, introspectedTable, "page");
         // addLimit(topLevelClass, introspectedTable, "limit");
@@ -40,17 +54,19 @@ public class PaginationPlugin extends PluginAdapter {
     public boolean sqlMapSelectByExampleWithoutBLOBsElementGenerated(XmlElement element,
                                                                      IntrospectedTable introspectedTable) {
         // 现在集成 xsili-mybatis-plugin-page 分页插件, 不需要拼接sql
-        
+
         // add start limit to sql
         // XmlElement isNotNullElement = new XmlElement("if");
         // isNotNullElement.addAttribute(new Attribute("test", "limit>0"));
         // isNotNullElement.addElement(new TextElement("limit ${start} , ${limit}"));
         // element.addElement(isNotNullElement);
-        
+
         return super.sqlMapUpdateByExampleWithoutBLOBsElementGenerated(element, introspectedTable);
     }
 
+    @SuppressWarnings("unused")
     private void addLimit(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, String name) {
+        // property
         CommentGenerator commentGenerator = context.getCommentGenerator();
         Field field = new Field();
         field.setVisibility(JavaVisibility.PROTECTED);
@@ -59,8 +75,10 @@ public class PaginationPlugin extends PluginAdapter {
         field.setInitializationString("-1");
         commentGenerator.addFieldComment(field, introspectedTable);
         topLevelClass.addField(field);
+        
         char c = name.charAt(0);
         String camel = Character.toUpperCase(c) + name.substring(1);
+        // set
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setName("set" + camel);
@@ -68,6 +86,8 @@ public class PaginationPlugin extends PluginAdapter {
         method.addBodyLine("this." + name + "=" + name + ";");
         commentGenerator.addGeneralMethodComment(method, introspectedTable);
         topLevelClass.addMethod(method);
+        
+        // get
         method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setReturnType(FullyQualifiedJavaType.getIntInstance());
@@ -75,13 +95,6 @@ public class PaginationPlugin extends PluginAdapter {
         method.addBodyLine("return " + name + ";");
         commentGenerator.addGeneralMethodComment(method, introspectedTable);
         topLevelClass.addMethod(method);
-    }
-
-    /**
-     * This plugin is always valid - no properties are required
-     */
-    public boolean validate(List<String> warnings) {
-        return true;
     }
 
 }

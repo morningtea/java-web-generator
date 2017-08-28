@@ -1,10 +1,11 @@
 package generator;
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.mybatis.generator.JavaCodeGenerationTest;
+import org.mybatis.generator.SqlScriptRunner;
 import org.mybatis.generator.api.MyBatisGenerator;
 import org.mybatis.generator.config.Configuration;
 import org.mybatis.generator.config.xml.ConfigurationParser;
@@ -14,6 +15,11 @@ public class MyBatisGeneratorTest {
 
     @Test
     public void generatorTest() throws Exception {
+        // create database
+        SqlScriptRunner scriptRunner = new SqlScriptRunner(JavaCodeGenerationTest.class.getResourceAsStream("/hsqldb-test.sql"), "org.hsqldb.jdbcDriver", "jdbc:hsqldb:mem:dbname", "sa", "");
+        scriptRunner.executeScript();
+
+        // generate code
         List<String> warnings = new ArrayList<String>();
         ConfigurationParser cp = new ConfigurationParser(warnings);
         Configuration config = cp.parseConfiguration(this.getClass().getClassLoader().getResourceAsStream("generator.xml"));

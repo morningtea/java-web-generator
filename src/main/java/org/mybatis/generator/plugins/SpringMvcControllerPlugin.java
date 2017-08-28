@@ -27,6 +27,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
 	private FullyQualifiedJavaType abstractControllerType;
 	private FullyQualifiedJavaType resultModelType;
+	private FullyQualifiedJavaType validatorUtilType;
+	private FullyQualifiedJavaType pagerType;
 
 	private FullyQualifiedJavaType controllerType;
 	private FullyQualifiedJavaType serviceType;
@@ -35,10 +37,6 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 	 * 如果有WithBlob, 则modelWithBLOBsType赋值为BlobModel, 否则赋值为BaseModel
 	 */
 	private FullyQualifiedJavaType modelWithBLOBsType;
-	private FullyQualifiedJavaType ValidatorUtilType;
-
-	private FullyQualifiedJavaType listType;
-	private FullyQualifiedJavaType pagerType;
 
 	private String targetPackage;
 	private String targetPackageService;
@@ -63,20 +61,30 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 			throw new IllegalArgumentException("property resultModel is null");
 		}
 		resultModelType = new FullyQualifiedJavaType(resultModel);
+		
+		String pager = properties.getProperty("pager");
+        if(StringUtils.isBlank(pager)) {
+            throw new RuntimeException("property pager is null");
+        } else {
+            pagerType = new FullyQualifiedJavaType(pager);
+        }
 
 		String abstractController = properties.getProperty("abstractController");
-		if (StringUtils.isNotBlank(abstractController)) {
-			abstractControllerType = new FullyQualifiedJavaType(abstractController);
+		if (StringUtils.isBlank(abstractController)) {
+		    throw new RuntimeException("property abstractController is null");
+		} else {
+		    abstractControllerType = new FullyQualifiedJavaType(abstractController);
 		}
+        
+        String validatorUtil = properties.getProperty("validatorUtil");
+        if (StringUtils.isNotBlank(validatorUtil)) {
+            validatorUtilType = new FullyQualifiedJavaType(validatorUtil);
+        }
 
 		targetPackage = properties.getProperty("targetPackage");
 		targetPackageService = properties.getProperty("targetPackageService");
 		project = properties.getProperty("targetProject");
 		modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
-
-		listType = new FullyQualifiedJavaType("java.util.List");
-		pagerType = new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.model.Pager");
-		ValidatorUtilType = new FullyQualifiedJavaType("com.xsili.base.util.ValidatorUtil");
 
 		annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
 		annotationController = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RestController");
@@ -158,17 +166,18 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 	 * 导入需要的类
 	 */
 	private void addImport(TopLevelClass topLevelClass) {
+	    topLevelClass.addImportedType(pagerType);
 		if (abstractControllerType != null) {
 			topLevelClass.addImportedType(abstractControllerType);
 		}
+		if(validatorUtilType != null) {
+		    topLevelClass.addImportedType(validatorUtilType);
+		}
+
 		topLevelClass.addImportedType(resultModelType);
 		topLevelClass.addImportedType(serviceType);
 		topLevelClass.addImportedType(modelType);
 		topLevelClass.addImportedType(modelWithBLOBsType);
-
-		topLevelClass.addImportedType(listType);
-		topLevelClass.addImportedType(pagerType);
-		topLevelClass.addImportedType(ValidatorUtilType);
 
 		topLevelClass.addImportedType(annotationResource);
 		topLevelClass.addImportedType(annotationController);
@@ -199,15 +208,9 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 		List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
 		List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
 		for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
-			boolean isPrimaryKey = false;
-			for (IntrospectedColumn primaryKeyColumn : primaryKeyColumns) {
-				if (introspectedColumn == primaryKeyColumn) {
-					isPrimaryKey = true;
-					break;
-				}
-			}
-
+			boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
 			String javaProperty = introspectedColumn.getJavaProperty();
+			// 排除主键, 创建时间, 更新时间
 			if (!isPrimaryKey && !"createTime".equals(javaProperty) && !"updateTime".equals(javaProperty)) {
 				Parameter parameter = new Parameter(introspectedColumn.getFullyQualifiedJavaType(), javaProperty);
 				parameter.addAnnotation("@RequestParam(required = true)");
@@ -222,12 +225,15 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 		sb.append("new ").append(modelWithBLOBsType.getShortName()).append("();");
 		method.addBodyLine(sb.toString());
 		PluginUtils.addSetFieldBodyLine(modelParamName, method);
-		method.addBodyLine("// 校验参数");
-		method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
+		
+		if(validatorUtilType != null) {
+		    method.addBodyLine("// 校验参数");
+		    method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
+		}
 
 		method.addBodyLine("");
 		method.addBodyLine(modelParamName + " = this." + getService() + "add(" + modelParamName + ");");
-		method.addBodyLine("return super.sucess(" + modelParamName + ");");
+		method.addBodyLine("return super.success(" + modelParamName + ");");
 
 		return method;
 	}
@@ -267,12 +273,15 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 		sb.append("new ").append(modelWithBLOBsType.getShortName()).append("();");
 		method.addBodyLine(sb.toString());
 		PluginUtils.addSetFieldBodyLine(modelParamName, method);
-		method.addBodyLine("// 校验参数");
-		method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
+
+		if(validatorUtilType != null) {
+		    method.addBodyLine("// 校验参数");
+		    method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
+		}
 
 		method.addBodyLine("");
 		method.addBodyLine(modelParamName + " = this." + getService() + "update(" + modelParamName + ");");
-		method.addBodyLine("return super.sucess(" + modelParamName + ");");
+		method.addBodyLine("return super.success(" + modelParamName + ");");
 
 		return method;
 	}
@@ -352,7 +361,6 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 	 * @return
 	 */
 	private Method listEntitys(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
-		topLevelClass.addImportedType(new FullyQualifiedJavaType("com.fpx.mybatis.plugin.util.PagerUtil"));
 		Method method = new Method();
 		method.setVisibility(JavaVisibility.PUBLIC);
 		method.setName("list");
@@ -363,7 +371,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 		method.addAnnotation(
 				"@ApiOperation(value = \"列表\", notes = \"\", response = " + resultModelType.getShortName() + ".class)");
 
-		method.addBodyLine("Pager<" + modelType.getShortName() + "> pager = " + getService() + "list(page, limit);");
+		method.addBodyLine(pagerType.getShortName() + "<" + modelType.getShortName() + "> pager = " + getService() + "list(page, limit);");
 		method.addBodyLine("return super.success(pager);");
 		return method;
 	}

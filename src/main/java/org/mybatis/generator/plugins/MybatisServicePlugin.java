@@ -25,6 +25,15 @@ import org.mybatis.generator.config.PropertyRegistry;
  * @date 2017年8月25日
  */
 public class MybatisServicePlugin extends PluginAdapter {
+    
+    private String servicePackage;
+    private String serviceImplPackage;
+    private String project;
+    private String modelPackage;
+
+    private FullyQualifiedJavaType pagerType;
+    private FullyQualifiedJavaType pagerUtilType;
+    private FullyQualifiedJavaType idGeneratorType;
 
 	private FullyQualifiedJavaType slf4jLogger;
 	private FullyQualifiedJavaType slf4jLoggerFactory;
@@ -42,16 +51,9 @@ public class MybatisServicePlugin extends PluginAdapter {
 	private FullyQualifiedJavaType BusinessExceptionType;
 
 	private FullyQualifiedJavaType listType;
-	private FullyQualifiedJavaType pagerType;
-	private FullyQualifiedJavaType pagerUtilType;
 
 	private FullyQualifiedJavaType annotationResource;
 	private FullyQualifiedJavaType annotationService;
-
-	private String servicePackage;
-	private String serviceImplPackage;
-	private String project;
-	private String modelPackage;
 
 	public MybatisServicePlugin() {
 		super();
@@ -61,24 +63,42 @@ public class MybatisServicePlugin extends PluginAdapter {
 
 	@Override
 	public boolean validate(List<String> warnings) {
+	    String pager = properties.getProperty("pager");
+        if(StringUtils.isBlank(pager)) {
+            throw new RuntimeException("property pager is null");
+        } else {
+            pagerType = new FullyQualifiedJavaType(pager);
+        }
+        
+        String pagerUtil = properties.getProperty("pagerUtil");
+        if(StringUtils.isBlank(pagerUtil)) {
+            throw new RuntimeException("property pagerUtil is null");
+        } else {
+            pagerUtilType = new FullyQualifiedJavaType(pagerUtil);
+        }
+        
+        String idGenerator = properties.getProperty("idGenerator");
+        if(StringUtils.isNotBlank(idGenerator)) {
+            idGeneratorType = new FullyQualifiedJavaType(idGenerator);
+        }
+
+        String businessExceptionName = properties.getProperty("businessException");
+        if(StringUtils.isNotBlank(businessExceptionName)) {
+            BusinessExceptionType = new FullyQualifiedJavaType(businessExceptionName);
+        } else {
+            BusinessExceptionType = new FullyQualifiedJavaType("java.lang.RuntimeException");
+        }
+        
 		servicePackage = properties.getProperty("targetPackage");
 		serviceImplPackage = properties.getProperty("targetPackageImpl");
 		project = properties.getProperty("targetProject");
 		modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
-
-		listType = new FullyQualifiedJavaType("java.util.List");
-		pagerType = new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.model.Pager");
-		pagerUtilType = new FullyQualifiedJavaType("com.xsili.mybatis.plugin.page.util.PagerUtil");
-
-		String businessExceptionName = properties.getProperty("businessException");
-		if(StringUtils.isNotBlank(businessExceptionName)) {
-		    BusinessExceptionType = new FullyQualifiedJavaType(businessExceptionName);
-		} else {
-		    BusinessExceptionType = new FullyQualifiedJavaType("java.lang.RuntimeException");
-		}
+		
 		annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
 		annotationService = new FullyQualifiedJavaType("org.springframework.stereotype.Service");
 
+		listType = new FullyQualifiedJavaType("java.util.List");
+		
 		return true;
 	}
 
@@ -202,7 +222,6 @@ public class MybatisServicePlugin extends PluginAdapter {
 		serviceInterface.addImportedType(modelType);
 		serviceInterface.addImportedType(modelWithBLOBsType);
 		serviceInterface.addImportedType(pagerType);
-		serviceInterface.addImportedType(pagerUtilType);
 
 		// 实现类
 		topLevelClass.addImportedType(slf4jLogger);
@@ -243,18 +262,22 @@ public class MybatisServicePlugin extends PluginAdapter {
 		List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
 		List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
 		for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
-			boolean isPrimaryKey = false;
-			for (IntrospectedColumn primaryKeyColumn : primaryKeyColumns) {
-				if (introspectedColumn == primaryKeyColumn) {
-					isPrimaryKey = true;
-					break;
-				}
-			}
+		    boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
 
 			// 非自增主键, 默认使用UUID
 			if (isPrimaryKey) {
 				if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
-					method.addBodyLine(modelParamName + ".setId(IDGenerator.getUUID());");
+				    if(introspectedColumn.isStringColumn()) {
+				        if(idGeneratorType != null) {
+				            topLevelClass.addImportedType(idGeneratorType);
+				            method.addBodyLine(modelParamName + ".setId(" + idGeneratorType.getShortName() + ".generateId());");
+				        } else {
+				            method.addBodyLine(modelParamName + ".setId(\"\");");
+				        }
+				    } else {
+				        // 字符串以外的类型, 设置为null, 需要用户手动修改
+				        method.addBodyLine(modelParamName + ".setId(null);");
+				    }
 				}
 			} else if ("createTime".equals(introspectedColumn.getJavaProperty())) {
 				topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
@@ -361,10 +384,9 @@ public class MybatisServicePlugin extends PluginAdapter {
 	 * @return
 	 */
 	private Method listEntitys(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
-		topLevelClass.addImportedType(pagerUtilType);
 		Method method = new Method();
 		method.setName("list");
-		method.setReturnType(new FullyQualifiedJavaType("Pager<" + modelType.getShortName() + ">"));
+		method.setReturnType(new FullyQualifiedJavaType(pagerType.getShortName() + "<" + modelType.getShortName() + ">"));
 		method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "page"));
 		method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "limit"));
 		method.setVisibility(JavaVisibility.PUBLIC);
@@ -373,11 +395,12 @@ public class MybatisServicePlugin extends PluginAdapter {
 				modelCriteriaType.getShortName() + " criteria = new " + modelCriteriaType.getShortName() + "();");
 		method.addBodyLine("criteria.setPage(page);");
 		method.addBodyLine("criteria.setLimit(limit);");
+		method.addBodyLine("@SuppressWarnings(\"unused\")");
 		method.addBodyLine(modelSubCriteriaType.getShortName() + " cri = criteria.createCriteria();");
 
 		method.addBodyLine(
 				"List<" + modelType.getShortName() + "> list = " + getMapper() + "selectByExample(criteria);");
-		method.addBodyLine("return PagerUtil.getPager(list, criteria);");
+		method.addBodyLine("return " + pagerUtilType.getShortName() + ".getPager(list, criteria);");
 		return method;
 	}
 

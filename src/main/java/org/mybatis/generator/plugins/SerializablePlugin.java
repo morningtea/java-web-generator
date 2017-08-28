@@ -84,6 +84,12 @@ public class SerializablePlugin extends PluginAdapter {
         makeSerializable(topLevelClass, introspectedTable);
         return true;
     }
+    
+    @Override
+    public boolean modelExampleClassGenerated(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+        makeSerializable(topLevelClass, introspectedTable);
+        return super.modelExampleClassGenerated(topLevelClass, introspectedTable);
+    }
 
     protected void makeSerializable(TopLevelClass topLevelClass,
             IntrospectedTable introspectedTable) {
