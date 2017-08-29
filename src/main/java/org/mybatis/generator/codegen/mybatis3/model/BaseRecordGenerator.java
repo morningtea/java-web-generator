@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.CommentGenerator;
 import org.mybatis.generator.api.FullyQualifiedTable;
 import org.mybatis.generator.api.IntrospectedColumn;
@@ -86,28 +85,13 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
         }
 
         String rootClass = getRootClass();
-        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             if (RootClassInfo.getInstance(rootClass, warnings)
                     .containsProperty(introspectedColumn)) {
                 continue;
             }
-            
+
             Field field = getJavaBeansField(introspectedColumn, context, introspectedTable);
-            
-            String remark = introspectedColumn.getRemarks();
-            boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
-            if (isPrimaryKey && StringUtils.isBlank(remark)) {
-                remark = "主键";
-            } else if (StringUtils.isBlank(remark)) {
-                remark = "";
-            }
-            // 把数据库列注释添加到model字段注释
-            field.addJavaDocLine("/**");
-            field.addJavaDocLine(" * " + remark);
-            field.addJavaDocLine(" */");
-            field.addFormattedJavadoc(new StringBuilder(), 1);
-            
             if (plugins.modelFieldGenerated(field, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.BASE_RECORD)) {

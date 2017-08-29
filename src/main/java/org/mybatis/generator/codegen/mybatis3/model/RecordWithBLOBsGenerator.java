@@ -23,7 +23,6 @@ import static org.mybatis.generator.internal.util.messages.Messages.getString;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.CommentGenerator;
 import org.mybatis.generator.api.FullyQualifiedTable;
 import org.mybatis.generator.api.IntrospectedColumn;
@@ -85,17 +84,6 @@ public class RecordWithBLOBsGenerator extends AbstractJavaGenerator {
             }
 
             Field field = getJavaBeansField(introspectedColumn, context, introspectedTable);
-            
-            String remark = introspectedColumn.getRemarks();
-            if (StringUtils.isBlank(remark)) {
-                remark = "";
-            }
-            // 把数据库列注释添加到model字段注释
-            field.addJavaDocLine("/**");
-            field.addJavaDocLine(" * " + remark);
-            field.addJavaDocLine(" */");
-            field.addFormattedJavadoc(new StringBuilder(), 1);
-            
             if (plugins.modelFieldGenerated(field, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.RECORD_WITH_BLOBS)) {
