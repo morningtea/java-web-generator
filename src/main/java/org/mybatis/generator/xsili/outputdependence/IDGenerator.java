@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence;
+package org.mybatis.generator.xsili.outputdependence;
 
 import org.springframework.util.AlternativeJdkIdGenerator;
 import org.springframework.util.IdGenerator;

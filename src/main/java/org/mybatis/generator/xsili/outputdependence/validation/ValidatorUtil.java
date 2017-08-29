@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence.validation;
+package org.mybatis.generator.xsili.outputdependence.validation;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -10,9 +10,9 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.mybatis.generator.outputdependence.I18NUtils;
-import org.mybatis.generator.outputdependence.exception.BusinessException;
-import org.mybatis.generator.outputdependence.model.Result;
+import org.mybatis.generator.xsili.outputdependence.I18NUtils;
+import org.mybatis.generator.xsili.outputdependence.exception.BusinessException;
+import org.mybatis.generator.xsili.outputdependence.model.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

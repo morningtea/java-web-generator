@@ -1,6 +1,6 @@
-package org.mybatis.generator.outputdependence.exception;
+package org.mybatis.generator.xsili.outputdependence.exception;
 
-import org.mybatis.generator.outputdependence.model.Result;
+import org.mybatis.generator.xsili.outputdependence.model.Result;
 
 /**
  * 业务异常类<br>

@@ -34,7 +34,7 @@
 		
 		<!-- 生成分页插件 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.PaginationPlugin">
-			<property name="queryParam" value="org.mybatis.generator.outputdependence.page.QueryParam" />
+			<property name="queryParam" value="org.mybatis.generator.xsili.outputdependence.page.QueryParam" />
 		</plugin>
         
         <!-- service代码生成 -->
@@ -43,13 +43,13 @@
 			<property name="targetPackage" value="com.xsili.module.service" />
 			<property name="targetPackageImpl" value="com.xsili.module.service.impl" />
 			<!-- 分页工具类 -->
-			<property name="pagerUtil" value="org.mybatis.generator.outputdependence.page.PagerUtil" />
+			<property name="pagerUtil" value="org.mybatis.generator.xsili.outputdependence.page.PagerUtil" />
 			<!-- 分页类型 -->
-			<property name="pager" value="org.mybatis.generator.outputdependence.page.Pager" />
+			<property name="pager" value="org.mybatis.generator.xsili.outputdependence.page.Pager" />
 			<!-- 选填, 业务异常 -->
-			<property name="businessException" value="org.mybatis.generator.outputdependence.exception.BusinessException" />
+			<property name="businessException" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException" />
 			<!-- 选填, id生成器 -->
-			<property name="idGenerator" value="org.mybatis.generator.outputdependence.IDGenerator" />
+			<property name="idGenerator" value="org.mybatis.generator.xsili.outputdependence.IDGenerator" />
 		</plugin>
 		
         <!-- controller代码生成 -->
@@ -57,13 +57,13 @@
 			<property name="targetProject" value="src/main/java" />
 			<property name="targetPackage" value="com.xsili.module.controller" />
 			<property name="targetPackageService" value="com.xsili.module.service" />
-			<property name="abstractController" value="org.mybatis.generator.outputdependence.AbstractController" />
+			<property name="abstractController" value="org.mybatis.generator.xsili.outputdependence.AbstractController" />
 			<!-- 分页类型 -->
-			<property name="pager" value="org.mybatis.generator.outputdependence.page.Pager" />
+			<property name="pager" value="org.mybatis.generator.xsili.outputdependence.page.Pager" />
 			<!-- 方法返回值类型 -->
-			<property name="resultModel" value="org.mybatis.generator.outputdependence.model.Result" />
+			<property name="resultModel" value="org.mybatis.generator.xsili.outputdependence.model.Result" />
 			<!-- 选填, 参数校验工具类 -->
-			<property name="validatorUtil" value="org.mybatis.generator.outputdependence.validation.ValidatorUtil" />
+			<property name="validatorUtil" value="org.mybatis.generator.xsili.outputdependence.validation.ValidatorUtil" />
 		</plugin>
 		
 		<!-- mapper测试代码生成  targetPackage与对应的实体生成保持一致 -->
@@ -71,7 +71,7 @@
 			<property name="targetProject" value="src/test/java" />
 			<property name="targetPackage" value="com.xsili.test.module.mapper" />
 			<!-- 测试基类 -->
-			<property name="superTestCase" value="org.mybatis.generator.outputdependence.test.BaseTest" />
+			<property name="superTestCase" value="org.mybatis.generator.xsili.outputdependence.test.BaseTest" />
 		</plugin>
 		
 		<commentGenerator type="org.mybatis.generator.xsili.XsiliCommentGenerator">

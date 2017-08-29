@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence;
+package org.mybatis.generator.xsili.outputdependence;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,9 +9,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
-import org.mybatis.generator.outputdependence.model.Result;
-import org.mybatis.generator.outputdependence.user.AdminUser;
-import org.mybatis.generator.outputdependence.user.User;
+import org.mybatis.generator.xsili.outputdependence.model.Result;
+import org.mybatis.generator.xsili.outputdependence.user.AdminUser;
+import org.mybatis.generator.xsili.outputdependence.user.User;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 

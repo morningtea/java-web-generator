@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence.test;
+package org.mybatis.generator.xsili.outputdependence.test;
 
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;

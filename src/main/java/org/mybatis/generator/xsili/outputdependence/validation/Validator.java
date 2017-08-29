@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence.validation;
+package org.mybatis.generator.xsili.outputdependence.validation;
 
 /**
  * 验证器模型，用于校验失败返回给前台的模型对象<br>

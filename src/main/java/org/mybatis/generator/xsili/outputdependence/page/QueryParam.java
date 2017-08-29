@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence.page;
+package org.mybatis.generator.xsili.outputdependence.page;
 
 import java.io.Serializable;
 

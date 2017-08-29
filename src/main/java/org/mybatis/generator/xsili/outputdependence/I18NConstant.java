@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence;
+package org.mybatis.generator.xsili.outputdependence;
 
 public class I18NConstant {
 

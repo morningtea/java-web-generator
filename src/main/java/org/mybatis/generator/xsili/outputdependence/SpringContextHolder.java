@@ -1,4 +1,4 @@
-package org.mybatis.generator.outputdependence;
+package org.mybatis.generator.xsili.outputdependence;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;

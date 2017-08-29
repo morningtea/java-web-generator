@@ -1,6 +1,6 @@
-package org.mybatis.generator.outputdependence.model;
+package org.mybatis.generator.xsili.outputdependence.model;
 
-import org.mybatis.generator.outputdependence.I18NConstant;
+import org.mybatis.generator.xsili.outputdependence.I18NConstant;
 
 /**
  * 结果状态
