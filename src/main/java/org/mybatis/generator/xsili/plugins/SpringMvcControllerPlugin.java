@@ -1,4 +1,4 @@
-package org.mybatis.generator.plugins;
+package org.mybatis.generator.xsili.plugins;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +15,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.plugins.PluginUtils;
 
 /**
  * Spring MVC Controller 代码生成插件

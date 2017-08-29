@@ -1,4 +1,4 @@
-package org.mybatis.generator.plugins;
+package org.mybatis.generator.xsili.plugins;
 
 import java.util.List;
 

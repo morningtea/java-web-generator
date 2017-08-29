@@ -1,4 +1,4 @@
-package org.mybatis.generator.plugins;
+package org.mybatis.generator.xsili.plugins;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +15,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.plugins.PluginUtils;
 
 /**
  * Mapper测试代码生成插件
@@ -23,7 +24,7 @@ import org.mybatis.generator.config.PropertyRegistry;
  * @author 叶鹏
  * @date 2017年8月25日
  */
-public class MybatisMapperJunitPlugin extends PluginAdapter {
+public class MapperJunitPlugin extends PluginAdapter {
 
     private FullyQualifiedJavaType junit;
     private FullyQualifiedJavaType assertType;
@@ -63,7 +64,7 @@ public class MybatisMapperJunitPlugin extends PluginAdapter {
     }
 
     // 初始化
-    public MybatisMapperJunitPlugin() {
+    public MapperJunitPlugin() {
         super();
         junit = new FullyQualifiedJavaType("org.junit.Test");
         assertType = new FullyQualifiedJavaType("static org.junit.Assert.assertEquals");

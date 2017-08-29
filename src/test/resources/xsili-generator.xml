@@ -4,10 +4,14 @@
 "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
 
 <generatorConfiguration>		
-	  <context id="MySqlTables" targetRuntime="MyBatis3">
+	  <context id="MySqlTables" targetRuntime="MyBatis3" defaultModelType="flat">
 		
 		<property name="javaFileEncoding" value="UTF-8"/>
-		
+		<property name="beginningDelimiter" value="`"/>
+        <property name="endingDelimiter" value="`"/>
+        <!-- <property name="javaFormatter" value=""/> -->
+        <!-- <property name="xmlFormatter" value=""/> -->
+        
         <!-- 序列化插件 -->
         <plugin type="org.mybatis.generator.plugins.SerializablePlugin"></plugin>
          
@@ -29,12 +33,12 @@
 		</plugin>
 		
 		<!-- 生成分页插件 -->
-		<plugin type="org.mybatis.generator.plugins.PaginationPlugin" >
+		<plugin type="org.mybatis.generator.xsili.plugins.PaginationPlugin" >
 			<property name="queryParam" value="org.mybatis.generator.outputdependence.page.QueryParam" />
 		</plugin>
         
         <!-- service代码生成 -->
-		<plugin type="org.mybatis.generator.plugins.MybatisServicePlugin" >
+		<plugin type="org.mybatis.generator.xsili.plugins.ServicePlugin" >
 			<property name="targetProject" value="src/main/java" />
 			<property name="targetPackage" value="com.xsili.module.service" />
 			<property name="targetPackageImpl" value="com.xsili.module.service.impl" />
@@ -49,7 +53,7 @@
 		</plugin>
 		
         <!-- controller代码生成 -->
-		<plugin type="org.mybatis.generator.plugins.SpringMvcControllerPlugin" >
+		<plugin type="org.mybatis.generator.xsili.plugins.SpringMvcControllerPlugin" >
 			<property name="targetProject" value="src/main/java" />
 			<property name="targetPackage" value="com.xsili.module.controller" />
 			<property name="targetPackageService" value="com.xsili.module.service" />
@@ -63,7 +67,7 @@
 		</plugin>
 		
 		<!-- mapper测试代码生成  targetPackage与对应的实体生成保持一致 -->
-		<plugin type="org.mybatis.generator.plugins.MybatisMapperJunitPlugin" >
+		<plugin type="org.mybatis.generator.xsili.plugins.MapperJunitPlugin" >
 			<property name="targetProject" value="src/test/java" />
 			<property name="targetPackage" value="com.xsili.test.module.mapper" />
 			<!-- 测试基类 -->
@@ -72,10 +76,10 @@
 		
 		<commentGenerator>
 			<!-- 是否自动生成注释 -->
-			<property name="suppressAllComments" value="true" />
-			<!-- <property name="suppressDate" value="true"/> -->
-			<!-- <property name="addRemarkComments" value="true"/> -->
-			<!-- <property name="dateFormat" value="yyyy-MM-dd HH:mm"/> -->
+			<property name="suppressAllComments" value="false" />
+			<property name="suppressDate" value="false"/>
+			<property name="dateFormat" value="yyyy-MM-dd HH:mm"/>
+			<property name="addRemarkComments" value="true"/>
 		</commentGenerator>
 		
 		<!-- 指定连接字符串 -->
@@ -112,8 +116,10 @@
 		</javaClientGenerator>
 		
         <!-- 数据库表-->
+		<!-- <table tableName="%" /> -->
 		
 		<table tableName="t_blob_auto_increment"  domainObjectName="BlobAutoIncrement" />
+		<table tableName="t_blob_union_key"  domainObjectName="BlobUnionKey" />
 		
 	</context>
 </generatorConfiguration>

@@ -1,4 +1,4 @@
-package org.mybatis.generator.plugins;
+package org.mybatis.generator.xsili.plugins;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +16,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.plugins.PluginUtils;
 
 /**
  * Service代码生成插件
@@ -24,7 +25,7 @@ import org.mybatis.generator.config.PropertyRegistry;
  * @author 叶鹏
  * @date 2017年8月25日
  */
-public class MybatisServicePlugin extends PluginAdapter {
+public class ServicePlugin extends PluginAdapter {
 
     private String servicePackage;
     private String serviceImplPackage;
@@ -55,7 +56,7 @@ public class MybatisServicePlugin extends PluginAdapter {
     private FullyQualifiedJavaType annotationResource;
     private FullyQualifiedJavaType annotationService;
 
-    public MybatisServicePlugin() {
+    public ServicePlugin() {
         super();
         slf4jLogger = new FullyQualifiedJavaType("org.slf4j.Logger");
         slf4jLoggerFactory = new FullyQualifiedJavaType("org.slf4j.LoggerFactory");

@@ -1,4 +1,4 @@
-package generator;
+package xsili.generator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,13 +16,13 @@ public class MyBatisGeneratorTest {
     @Test
     public void generatorTest() throws Exception {
         // create database
-        SqlScriptRunner scriptRunner = new SqlScriptRunner(JavaCodeGenerationTest.class.getResourceAsStream("/hsqldb-test.sql"), "org.hsqldb.jdbcDriver", "jdbc:hsqldb:mem:dbname", "sa", "");
+        SqlScriptRunner scriptRunner = new SqlScriptRunner(JavaCodeGenerationTest.class.getResourceAsStream("/xsili-hsqldb-test.sql"), "org.hsqldb.jdbcDriver", "jdbc:hsqldb:mem:dbname", "sa", "");
         scriptRunner.executeScript();
 
         // generate code
         List<String> warnings = new ArrayList<String>();
         ConfigurationParser cp = new ConfigurationParser(warnings);
-        Configuration config = cp.parseConfiguration(this.getClass().getClassLoader().getResourceAsStream("generator.xml"));
+        Configuration config = cp.parseConfiguration(this.getClass().getClassLoader().getResourceAsStream("xsili-generator.xml"));
 
         DefaultShellCallback shellCallback = new DefaultShellCallback(true);
         MyBatisGenerator myBatisGenerator = new MyBatisGenerator(config, shellCallback, warnings);
