@@ -12,6 +12,7 @@ import org.mybatis.generator.api.dom.java.Field;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.JavaVisibility;
 import org.mybatis.generator.api.dom.java.Method;
+import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
 
@@ -24,208 +25,248 @@ import org.mybatis.generator.config.PropertyRegistry;
  */
 public class MybatisMapperJunitPlugin extends PluginAdapter {
 
-	private FullyQualifiedJavaType junit;
-	private FullyQualifiedJavaType assertType;
-	private FullyQualifiedJavaType annotationResource;
-	private FullyQualifiedJavaType listType;
+    private FullyQualifiedJavaType junit;
+    private FullyQualifiedJavaType assertType;
+    private FullyQualifiedJavaType annotationResource;
+    private FullyQualifiedJavaType listType;
 
-	private FullyQualifiedJavaType modelType;
-	/**
-	 * 如果有WithBlob, 则modelWithBLOBsType赋值为BlobModel, 否则赋值为BaseModel
-	 */
-	private FullyQualifiedJavaType modelWithBLOBsType;
-	private FullyQualifiedJavaType modelCriteriaType;
-	private FullyQualifiedJavaType mapperType;
-	private FullyQualifiedJavaType mapperTestType;
+    private FullyQualifiedJavaType idGeneratorType;
 
-	private String targetProject;
-	private String targetPackage;
-	private String modelPackage;
-	private String superTestCase;
+    private FullyQualifiedJavaType modelType;
+    /**
+     * 如果有WithBlob, 则modelWithBLOBsType赋值为BlobModel, 否则赋值为BaseModel
+     */
+    private FullyQualifiedJavaType modelWithBLOBsType;
+    private FullyQualifiedJavaType modelCriteriaType;
+    private FullyQualifiedJavaType mapperType;
+    private FullyQualifiedJavaType mapperTestType;
 
-	@Override
-	public boolean validate(List<String> warnings) {
-		targetProject = properties.getProperty("targetProject");
-		targetPackage = properties.getProperty("targetPackage");
-		superTestCase = properties.getProperty("superTestCase");
-		if(StringUtils.isBlank(superTestCase)) {
-		    throw new RuntimeException("property superTestCase is null");
-		}
-		modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
-		return true;
-	}
+    private String targetProject;
+    private String targetPackage;
+    private String modelPackage;
+    private String superTestCase;
 
-	// 初始化
-	public MybatisMapperJunitPlugin() {
-		super();
-		junit = new FullyQualifiedJavaType("org.junit.Test");
-		assertType = new FullyQualifiedJavaType("static org.junit.Assert.assertEquals");
-		annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
-		listType = new FullyQualifiedJavaType("java.util.List");
-	}
+    @Override
+    public boolean validate(List<String> warnings) {
+        targetProject = properties.getProperty("targetProject");
+        targetPackage = properties.getProperty("targetPackage");
+        superTestCase = properties.getProperty("superTestCase");
+        if (StringUtils.isBlank(superTestCase)) {
+            throw new RuntimeException("property superTestCase is null");
+        }
+        String idGenerator = properties.getProperty("idGenerator");
+        if (StringUtils.isNotBlank(idGenerator)) {
+            idGeneratorType = new FullyQualifiedJavaType(idGenerator);
+        }
+        modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
+        return true;
+    }
 
-	public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
-		List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
-		String table = introspectedTable.getBaseRecordType();
-		String tableName = table.replaceAll(this.modelPackage + ".", "");
+    // 初始化
+    public MybatisMapperJunitPlugin() {
+        super();
+        junit = new FullyQualifiedJavaType("org.junit.Test");
+        assertType = new FullyQualifiedJavaType("static org.junit.Assert.assertEquals");
+        annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
+        listType = new FullyQualifiedJavaType("java.util.List");
+    }
 
-		modelWithBLOBsType = modelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
-		if (introspectedTable.getRules().generateRecordWithBLOBsClass()) {
-			modelWithBLOBsType = new FullyQualifiedJavaType(introspectedTable.getRecordWithBLOBsType());
-		}
-		mapperType = new FullyQualifiedJavaType(introspectedTable.getMyBatis3JavaMapperType());
-		modelCriteriaType = new FullyQualifiedJavaType(introspectedTable.getExampleType());
-		mapperTestType = new FullyQualifiedJavaType(targetPackage + "." + tableName + "MapperTest");
+    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
+        List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
+        String table = introspectedTable.getBaseRecordType();
+        String tableName = table.replaceAll(this.modelPackage + ".", "");
 
-		TopLevelClass topLevelClass = new TopLevelClass(mapperTestType);
-		topLevelClass.setVisibility(JavaVisibility.PUBLIC);
-		topLevelClass.setSuperClass(superTestCase);
+        modelWithBLOBsType = modelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
+        if (introspectedTable.getRules().generateRecordWithBLOBsClass()) {
+            modelWithBLOBsType = new FullyQualifiedJavaType(introspectedTable.getRecordWithBLOBsType());
+        }
+        mapperType = new FullyQualifiedJavaType(introspectedTable.getMyBatis3JavaMapperType());
+        modelCriteriaType = new FullyQualifiedJavaType(introspectedTable.getExampleType());
+        mapperTestType = new FullyQualifiedJavaType(targetPackage + "." + tableName + "MapperTest");
 
-		// 导入必要的类
-		addImport(topLevelClass);
+        TopLevelClass topLevelClass = new TopLevelClass(mapperTestType);
+        topLevelClass.setVisibility(JavaVisibility.PUBLIC);
+        topLevelClass.setSuperClass(superTestCase);
 
-		// 添加 Mapper引用
-		addMapperField(topLevelClass);
+        // 导入必要的类
+        addImport(topLevelClass, introspectedTable);
 
-		// 添加基础方法
-		topLevelClass.addMethod(addCRUD(topLevelClass, introspectedTable));
+        // 添加 Mapper引用
+        addMapperField(topLevelClass);
 
-		// 生成文件
-		GeneratedJavaFile file = new GeneratedJavaFile(topLevelClass, targetProject,
-				context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
-		files.add(file);
-		return files;
-	}
+        // 添加基础方法
+        topLevelClass.addMethod(addCRUD(topLevelClass, introspectedTable));
 
-	/**
-	 * CRUD测试方法
-	 * 
-	 * @param topLevelClass
-	 * @param introspectedTable
-	 * @return
-	 */
-	private Method addCRUD(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
-		Method method = new Method();
-		method.addAnnotation("@Test");
-		method.setVisibility(JavaVisibility.PUBLIC);
-		method.setReturnType(new FullyQualifiedJavaType("void"));
-		method.setName("crudTest");
+        // 生成文件
+        GeneratedJavaFile file = new GeneratedJavaFile(topLevelClass, targetProject, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
+        files.add(file);
+        return files;
+    }
 
-		String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
-		method.addBodyLine(modelWithBLOBsType.getShortName() + " " + modelParamName + " = new "
-				+ modelWithBLOBsType.getShortName() + "();");
+    /**
+     * CRUD测试方法
+     * 
+     * @param topLevelClass
+     * @param introspectedTable
+     * @return
+     */
+    private Method addCRUD(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+        Method method = new Method();
+        method.addAnnotation("@Test");
+        method.setVisibility(JavaVisibility.PUBLIC);
+        method.setReturnType(new FullyQualifiedJavaType("void"));
+        method.setName("crudTest");
 
-		List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
-		List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
-		for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
-		    boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
+        String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
+        String key = "";
+        FullyQualifiedJavaType keyType = PluginUtils.getKeyClass(introspectedTable);
+        if (keyType != null) {
+            key = "(" + keyType.getShortName() + ") " + modelParamName;
+        } else {
+            List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+            for (Parameter parameter : keyParameterList) {
+                key += modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(parameter.getName()) + "(), ";
+            }
+            if(key.length() > 0) {
+                key = key.substring(0, key.lastIndexOf(","));
+            }
+        }
 
-			// 非自增主键, 默认使用UUID
-			if (isPrimaryKey) {
-				if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
-					method.addBodyLine(modelParamName + ".setId(IDGenerator.getUUID());");
-				}
-			} else if ("createTime".equals(introspectedColumn.getJavaProperty())) {
-				topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-				method.addBodyLine(modelParamName + ".setCreateTime(new Date());");
-			} else if ("updateTime".equals(introspectedColumn.getJavaProperty())) {
-				topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-				method.addBodyLine(modelParamName + ".setUpdateTime(new Date());");
-			} else if (introspectedColumn.isStringColumn()) {
-				String javaProperty = introspectedColumn.getJavaProperty();
-				method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(\""
-						+ javaProperty + "\");");
-			}
-		}
+        method.addBodyLine(modelWithBLOBsType.getShortName() + " " + modelParamName + " = new "
+                           + modelWithBLOBsType.getShortName() + "();");
 
-		method.addBodyLine("");
-		method.addBodyLine("//vaild insertRecord Test");
-		method.addBodyLine("assertEquals(1, " + getMapper() + "insertSelective(" + modelParamName + "));");
+        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
+        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+            boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
 
-		method.addBodyLine("");
-		method.addBodyLine("//vaild updateRecord Test");
-		for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
-			String property = introspectedColumn.getJavaProperty();
-			if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
-				method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(\""
-						+ PluginUtils.upperCaseFirstLetter(property) + "\");");
-			}
-			if (introspectedColumn.isJDBCDateColumn() || introspectedColumn.isJDBCTimeColumn()) {
-				topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-				method.addBodyLine(
-						modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(new Date());");
-			}
-		}
-		method.addBodyLine(getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ");");
-		for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
-			String property = introspectedColumn.getJavaProperty();
-			if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
-				method.addBodyLine("assertEquals(\"" + PluginUtils.upperCaseFirstLetter(property) + "\","
-						+ modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(property) + "());");
-			}
-		}
+            // 非自增主键, 默认使用UUID
+            if (isPrimaryKey) {
+                if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
+                    String params = "";
+                    if (introspectedColumn.isStringColumn()) {
+                        if (idGeneratorType != null) {
+                            topLevelClass.addImportedType(idGeneratorType);
+                            params = idGeneratorType.getShortName() + ".generateId()";
+                        } else {
+                            params = "";
+                        }
+                    } else {
+                        // 字符串以外的类型, 设置为null, 需要用户手动修改
+                        params = "null";
+                    }
+                    method.addBodyLine(modelParamName + PluginUtils.generateSetterCall(introspectedColumn, params));
+                }
+            } else if ("createTime".equals(introspectedColumn.getJavaProperty())) {
+                topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
+                method.addBodyLine(modelParamName + ".setCreateTime(new Date());");
+            } else if ("updateTime".equals(introspectedColumn.getJavaProperty())) {
+                topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
+                method.addBodyLine(modelParamName + ".setUpdateTime(new Date());");
+            } else if (introspectedColumn.isStringColumn()) {
+                String javaProperty = introspectedColumn.getJavaProperty();
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(\""
+                                   + javaProperty + "\");");
+            }
+        }
 
-		method.addBodyLine("");
-		method.addBodyLine("//vaild selectRecord Test");
-		method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "selectByPrimaryKey("
-				+ modelParamName + ".getId()).getId());");
+        method.addBodyLine("");
+        method.addBodyLine("//vaild insertRecord Test");
+        method.addBodyLine("assertEquals(1, " + getMapper() + "insertSelective(" + modelParamName + "));");
 
-		method.addBodyLine("");
-		method.addBodyLine("//vaild selectByExample Test");
-		method.addBodyLine(
-				modelCriteriaType.getShortName() + " criteria = new " + modelCriteriaType.getShortName() + "();");
-		method.addBodyLine("criteria.createCriteria().andIdEqualTo(" + modelParamName + ".getId());");
-		method.addBodyLine("List<" + modelType.getShortName() + "> " + modelType.getShortName() + "s =" + getMapper()
-				+ "selectByExample(criteria);");
-		method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
+        method.addBodyLine("");
+        method.addBodyLine("//vaild updateRecord Test");
+        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+            String property = introspectedColumn.getJavaProperty();
+            if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(\""
+                                   + PluginUtils.upperCaseFirstLetter(property) + "\");");
+            }
+            if (introspectedColumn.isJDBCDateColumn() || introspectedColumn.isJDBCTimeColumn()) {
+                topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property)
+                                   + "(new Date());");
+            }
+        }
+        method.addBodyLine(getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ");");
+        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+            String property = introspectedColumn.getJavaProperty();
+            if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
+                method.addBodyLine("assertEquals(\"" + PluginUtils.upperCaseFirstLetter(property) + "\","
+                                   + modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(property) + "());");
+            }
+        }
 
-		method.addBodyLine("");
-		method.addBodyLine("//vaild countByExample Test");
-		method.addBodyLine("long connt=" + getMapper() + "countByExample(criteria);");
-		method.addBodyLine("assertEquals(1, connt);");
+        method.addBodyLine("");
+        method.addBodyLine("//vaild selectRecord Test");
+        method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "selectByPrimaryKey(" + key
+                           + ").getId());");
 
-		method.addBodyLine("");
-		method.addBodyLine("//vaild page Test");
-		method.addBodyLine("criteria.setPage(1);");
-		method.addBodyLine("criteria.setLimit(10);");
-		method.addBodyLine(modelType.getShortName() + "s =" + getMapper() + "selectByExample(criteria);");
-		method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
+        method.addBodyLine("");
+        method.addBodyLine("//vaild selectByExample Test");
+        method.addBodyLine(modelCriteriaType.getShortName() + " criteria = new " + modelCriteriaType.getShortName()
+                           + "();");
+        method.addBodyLine("criteria.createCriteria().andIdEqualTo(" + modelParamName + ".getId());");
+        method.addBodyLine("List<" + modelType.getShortName() + "> " + modelType.getShortName() + "s =" + getMapper()
+                           + "selectByExample(criteria);");
+        method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
 
-		method.addBodyLine("");
-		method.addBodyLine("//vaild deleteRecord Test");
-		method.addBodyLine("assertEquals(1, " + getMapper() + "deleteByPrimaryKey(" + modelParamName + ".getId()));");
-		return method;
-	}
+        method.addBodyLine("");
+        method.addBodyLine("//vaild countByExample Test");
+        method.addBodyLine("long connt=" + getMapper() + "countByExample(criteria);");
+        method.addBodyLine("assertEquals(1, connt);");
 
-	private void addImport(TopLevelClass topLevelClass) {
-		topLevelClass.addImportedType(junit);
-		topLevelClass.addImportedType(assertType);
-		topLevelClass.addImportedType(annotationResource);
-		topLevelClass.addImportedType(listType);
+        method.addBodyLine("");
+        method.addBodyLine("//vaild page Test");
+        method.addBodyLine("criteria.setPage(1);");
+        method.addBodyLine("criteria.setLimit(10);");
+        method.addBodyLine(modelType.getShortName() + "s =" + getMapper() + "selectByExample(criteria);");
+        method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
 
-		topLevelClass.addImportedType(modelType);
-		topLevelClass.addImportedType(modelWithBLOBsType);
-		topLevelClass.addImportedType(modelCriteriaType);
-		topLevelClass.addImportedType(mapperType);
-		topLevelClass.addImportedType(superTestCase);
-	}
+        method.addBodyLine("");
+        method.addBodyLine("//vaild deleteRecord Test");
+        method.addBodyLine("assertEquals(1, " + getMapper() + "deleteByPrimaryKey(" + key + "));");
+        return method;
+    }
 
-	/**
-	 * 添加 Mapper依赖字段
-	 */
-	private void addMapperField(TopLevelClass topLevelClass) {
-		topLevelClass.addImportedType(mapperType);
+    private void addImport(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+        // 导入key类型
+        List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+        for (Parameter parameter : keyParameterList) {
+            if (parameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
+                topLevelClass.addImportedType(parameter.getType());
+                topLevelClass.addImportedType(parameter.getType());
+            }
+        }
 
-		Field field = new Field();
-		field.setVisibility(JavaVisibility.PRIVATE);
-		field.setType(mapperType);
-		field.setName(PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()));
-		field.addAnnotation("@Resource");
-		topLevelClass.addField(field);
-	}
+        topLevelClass.addImportedType(junit);
+        topLevelClass.addImportedType(assertType);
+        topLevelClass.addImportedType(annotationResource);
+        topLevelClass.addImportedType(listType);
 
-	private String getMapper() {
-		return PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()) + ".";
-	}
+        topLevelClass.addImportedType(modelType);
+        topLevelClass.addImportedType(modelWithBLOBsType);
+        topLevelClass.addImportedType(modelCriteriaType);
+        topLevelClass.addImportedType(mapperType);
+        topLevelClass.addImportedType(superTestCase);
+    }
+
+    /**
+     * 添加 Mapper依赖字段
+     */
+    private void addMapperField(TopLevelClass topLevelClass) {
+        topLevelClass.addImportedType(mapperType);
+
+        Field field = new Field();
+        field.setVisibility(JavaVisibility.PRIVATE);
+        field.setType(mapperType);
+        field.setName(PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()));
+        field.addAnnotation("@Resource");
+        topLevelClass.addField(field);
+    }
+
+    private String getMapper() {
+        return PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()) + ".";
+    }
 
 }

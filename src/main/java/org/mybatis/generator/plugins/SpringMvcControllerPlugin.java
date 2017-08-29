@@ -110,7 +110,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
 		TopLevelClass topLevelClass = new TopLevelClass(controllerType);
 		// 导入必要的类
-		addImport(topLevelClass);
+		addImport(topLevelClass, introspectedTable);
 		// 实现类
 		List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
 		addController(topLevelClass, introspectedTable, files);
@@ -165,7 +165,16 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 	/**
 	 * 导入需要的类
 	 */
-	private void addImport(TopLevelClass topLevelClass) {
+	private void addImport(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+	    // 导入key类型
+        List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+        for (Parameter parameter : keyParameterList) {
+            if(parameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
+                topLevelClass.addImportedType(parameter.getType());
+                topLevelClass.addImportedType(parameter.getType());
+            }
+        }
+        
 	    topLevelClass.addImportedType(pagerType);
 		if (abstractControllerType != null) {
 			topLevelClass.addImportedType(abstractControllerType);
@@ -301,12 +310,12 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 		method.addAnnotation(
 				"@ApiOperation(value = \"删除\", notes = \"\", response = " + resultModelType.getShortName() + ".class)");
 
-		List<Parameter> parameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-		for (Parameter parameter : parameterList) {
+		List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+		for (Parameter parameter : keyParameterList) {
 			// parameter.addAnnotation("@RequestParam(required = true)");
 			method.addParameter(parameter);
 		}
-		String params = PluginUtils.getCallParameters(parameterList);
+		String params = PluginUtils.getCallParameters(keyParameterList);
 
 		method.addBodyLine("boolean successful = this." + getService() + "delete(" + params + ");");
 		method.addBodyLine("if (!successful) {");
@@ -332,12 +341,12 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 		method.addAnnotation(
 				"@ApiOperation(value = \"详情\", notes = \"\", response = " + resultModelType.getShortName() + ".class)");
 
-		List<Parameter> parameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-		for (Parameter parameter : parameterList) {
+		List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+		for (Parameter parameter : keyParameterList) {
 			// parameter.addAnnotation("@RequestParam(required = true)");
 			method.addParameter(parameter);
 		}
-		String params = PluginUtils.getCallParameters(parameterList);
+		String params = PluginUtils.getCallParameters(keyParameterList);
 
 		String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
 
