@@ -34,7 +34,7 @@ public class PluginUtils {
     private static String generateGetterSetterCall(String getterSetter,
                                                    IntrospectedColumn introspectedColumn,
                                                    String params) {
-        return "." + getterSetter + upperCaseFirstLetter(introspectedColumn.getJavaProperty()) + "(" + params + ")";
+        return "." + getterSetter + upperCaseFirstLetter(introspectedColumn.getJavaProperty()) + "(" + params + ");";
     }
 
     /**
