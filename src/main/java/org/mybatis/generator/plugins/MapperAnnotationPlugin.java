@@ -25,6 +25,12 @@ import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.Interface;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 
+/**
+ * 支持配置 annotationClass annotationName
+ * 
+ * @author 叶鹏
+ * @date 2017年8月29日
+ */
 public class MapperAnnotationPlugin extends PluginAdapter {
 
 	private static final String DEFAULT_ANNOTATION_CLASS = "org.apache.ibatis.annotations.Mapper";
