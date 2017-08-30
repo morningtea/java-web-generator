@@ -23,7 +23,15 @@
 
 #### 兼容mybatis-generator-core:
 1. 扩展MapperAnnotationPlugin, 添加对 annotationClass annotationName 配置支持
-2. 扩展org.mybatis.generator.api.dom.java.Method, 添加方法removeBodyLines()
-3. 扩展SerializablePlugin, 为ExampleClass添加serialVersionUID (添加覆盖方法  @Override#modelExampleClassGenerated)
-以上修改, 均是功能扩展, 可以兼容MBG的原有功能和配置项.
+2. 扩展SerializablePlugin, 为ExampleClass添加serialVersionUID (添加覆盖方法  @Override#modelExampleClassGenerated)
+3. 扩展org.mybatis.generator.api.dom.java.Method, 添加方法removeBodyLines()
+4. JavaMapperGenerator, XMLMapperGenerator, 屏蔽了以下方法已经对应的 Mapper sql.  
+addSelectByExampleWithBLOBsMethod(interfaze);  
+addInsertMethod(interfaze);  
+addUpdateByExampleSelectiveMethod(interfaze);  
+addUpdateByExampleWithBLOBsMethod(interfaze);  
+addUpdateByExampleWithoutBLOBsMethod(interfaze);  
+addUpdateByPrimaryKeyWithoutBLOBsMethod(interfaze);  
+
+除了第4点, 以上修改均是功能扩展, 可以兼容MBG的原有功能和配置项.
 

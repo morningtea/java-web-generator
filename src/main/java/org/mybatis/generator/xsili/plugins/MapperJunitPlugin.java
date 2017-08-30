@@ -125,8 +125,8 @@ public class MapperJunitPlugin extends PluginAdapter {
             key = "(" + keyType.getShortName() + ") " + modelParamName;
         } else {
             List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-            for (Parameter parameter : keyParameterList) {
-                key += modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(parameter.getName()) + "(), ";
+            for (Parameter keyParameter : keyParameterList) {
+                key += modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(keyParameter.getName()) + "(), ";
             }
             if(key.length() > 0) {
                 key = key.substring(0, key.lastIndexOf(","));
@@ -137,8 +137,8 @@ public class MapperJunitPlugin extends PluginAdapter {
                            + modelWithBLOBsType.getShortName() + "();");
 
         List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
-        List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
-        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+        List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
+        for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
 
             // 非自增主键, 默认使用UUID
@@ -177,7 +177,7 @@ public class MapperJunitPlugin extends PluginAdapter {
 
         method.addBodyLine("");
         method.addBodyLine("//vaild updateRecord Test");
-        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+        for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String property = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(\""
@@ -190,7 +190,7 @@ public class MapperJunitPlugin extends PluginAdapter {
             }
         }
         method.addBodyLine(getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ");");
-        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+        for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String property = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
                 method.addBodyLine("assertEquals(\"" + PluginUtils.upperCaseFirstLetter(property) + "\","
@@ -233,10 +233,10 @@ public class MapperJunitPlugin extends PluginAdapter {
     private void addImport(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
         // 导入key类型
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-        for (Parameter parameter : keyParameterList) {
-            if (parameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
-                topLevelClass.addImportedType(parameter.getType());
-                topLevelClass.addImportedType(parameter.getType());
+        for (Parameter keyParameter : keyParameterList) {
+            if (keyParameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
+                topLevelClass.addImportedType(keyParameter.getType());
+                topLevelClass.addImportedType(keyParameter.getType());
             }
         }
 

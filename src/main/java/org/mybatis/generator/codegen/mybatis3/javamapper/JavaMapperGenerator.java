@@ -104,7 +104,7 @@ public class JavaMapperGenerator extends AbstractJavaClientGenerator {
 //        addUpdateByExampleWithBLOBsMethod(interfaze);
 //        addUpdateByExampleWithoutBLOBsMethod(interfaze);
         addUpdateByPrimaryKeySelectiveMethod(interfaze);
-//        addUpdateByPrimaryKeyWithBLOBsMethod(interfaze);
+        addUpdateByPrimaryKeyWithBLOBsMethod(interfaze);
 //        addUpdateByPrimaryKeyWithoutBLOBsMethod(interfaze);
 
         List<CompilationUnit> answer = new ArrayList<CompilationUnit>();

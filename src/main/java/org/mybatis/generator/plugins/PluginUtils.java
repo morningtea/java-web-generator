@@ -38,6 +38,19 @@ public class PluginUtils {
     }
 
     /**
+     * 根据method参数填充model.setXxx代码行
+     * 
+     * @param modelParamName
+     * @param method
+     */
+    public static void generateModelSetterBodyLine(String modelParamName, Method method) {
+        for (Parameter parameter : method.getParameters()) {
+            method.addBodyLine(modelParamName + ".set" + upperCaseFirstLetter(parameter.getName()) + "("
+                               + parameter.getName() + ");");
+        }
+    }
+    
+    /**
      * 如果有单独创建key, 则返回key类型
      * 
      * @return
@@ -45,9 +58,9 @@ public class PluginUtils {
     public static FullyQualifiedJavaType getKeyClass(IntrospectedTable introspectedTable) {
         // 导入key类型
         List<Parameter> keyParameterList = getPrimaryKeyParameters(introspectedTable);
-        for (Parameter parameter : keyParameterList) {
-            if (parameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
-                return parameter.getType();
+        for (Parameter keyParameter : keyParameterList) {
+            if (keyParameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
+                return keyParameter.getType();
             }
         }
         return null;
@@ -87,19 +100,6 @@ public class PluginUtils {
         }
         paramsBuf.setLength(paramsBuf.length() - 1);
         return paramsBuf.toString();
-    }
-
-    /**
-     * 根据method参数填充setXxx代码行
-     * 
-     * @param modelParamName
-     * @param method
-     */
-    public static void addSetFieldBodyLine(String modelParamName, Method method) {
-        for (Parameter parameter : method.getParameters()) {
-            method.addBodyLine(modelParamName + ".set" + upperCaseFirstLetter(parameter.getName()) + "("
-                               + parameter.getName() + ");");
-        }
     }
 
     /**

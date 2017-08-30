@@ -91,7 +91,7 @@ public class XMLMapperGenerator extends AbstractXmlGenerator {
 //        addUpdateByExampleWithBLOBsElement(answer);
 //        addUpdateByExampleWithoutBLOBsElement(answer);
         addUpdateByPrimaryKeySelectiveElement(answer);
-//        addUpdateByPrimaryKeyWithBLOBsElement(answer);
+        addUpdateByPrimaryKeyWithBLOBsElement(answer);
 //        addUpdateByPrimaryKeyWithoutBLOBsElement(answer);
 
         return answer;

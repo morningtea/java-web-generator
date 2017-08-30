@@ -3,7 +3,8 @@
 "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN" 
 "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
 
-<generatorConfiguration>		
+<generatorConfiguration>
+	  <!-- defaultModelType: hierarchical flat conditional -->
 	  <context id="MySqlTables" targetRuntime="MyBatis3" defaultModelType="flat">
 		
 		<property name="javaFileEncoding" value="UTF-8"/>
@@ -57,6 +58,11 @@
 			<property name="targetProject" value="src/main/java" />
 			<property name="targetPackage" value="com.xsili.module.controller" />
 			<property name="targetPackageService" value="com.xsili.module.service" />
+			<!-- 接口风格, restful or 传统CRUD -->
+			<property name="isRestful" value="true" />
+			<!-- 开启Swagger文档注释 -->
+			<property name="enableSwaggerAnnotation" value="true" />
+			<!-- 基类 -->
 			<property name="abstractController" value="org.mybatis.generator.xsili.outputdependence.AbstractController" />
 			<!-- 分页类型 -->
 			<property name="pager" value="org.mybatis.generator.xsili.outputdependence.page.Pager" />

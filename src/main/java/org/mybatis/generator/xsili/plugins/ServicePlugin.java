@@ -144,13 +144,17 @@ public class ServicePlugin extends PluginAdapter {
                             List<GeneratedJavaFile> files) {
         serviceInterface.setVisibility(JavaVisibility.PUBLIC);
 
-        Method addMethod = addEntity(topLevelClass, introspectedTable);
+        Method addMethod = createEntity(topLevelClass, introspectedTable);
         addMethod.removeBodyLines();
         serviceInterface.addMethod(addMethod);
 
-        Method updateMethod = updateEntity(topLevelClass, introspectedTable);
+        Method updateMethod = updateEntity(topLevelClass, introspectedTable, false);
         updateMethod.removeBodyLines();
         serviceInterface.addMethod(updateMethod);
+        
+        Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, true);
+        updateSelectiveMethod.removeBodyLines();
+        serviceInterface.addMethod(updateSelectiveMethod);
 
         Method deleteMethod = deleteEntity(introspectedTable);
         deleteMethod.removeBodyLines();
@@ -191,13 +195,17 @@ public class ServicePlugin extends PluginAdapter {
 
         // 添加基础方法
 
-        Method addMethod = addEntity(topLevelClass, introspectedTable);
+        Method addMethod = createEntity(topLevelClass, introspectedTable);
         addMethod.addAnnotation("@Override");
         topLevelClass.addMethod(addMethod);
 
-        Method updateMethod = updateEntity(topLevelClass, introspectedTable);
+        Method updateMethod = updateEntity(topLevelClass, introspectedTable, false);
         updateMethod.addAnnotation("@Override");
         topLevelClass.addMethod(updateMethod);
+        
+        Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, true);
+        updateSelectiveMethod.addAnnotation("@Override");
+        topLevelClass.addMethod(updateSelectiveMethod);
 
         Method deleteMethod = deleteEntity(introspectedTable);
         deleteMethod.addAnnotation("@Override");
@@ -224,10 +232,10 @@ public class ServicePlugin extends PluginAdapter {
                            IntrospectedTable introspectedTable) {
         // 导入key类型
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-        for (Parameter parameter : keyParameterList) {
-            if (parameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
-                serviceInterface.addImportedType(parameter.getType());
-                topLevelClass.addImportedType(parameter.getType());
+        for (Parameter keyParameter : keyParameterList) {
+            if (keyParameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
+                serviceInterface.addImportedType(keyParameter.getType());
+                topLevelClass.addImportedType(keyParameter.getType());
             }
         }
 
@@ -263,18 +271,18 @@ public class ServicePlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method addEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+    private Method createEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
         String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
-        method.setName("add");
+        method.setName("create");
         method.setReturnType(modelWithBLOBsType);
         method.addParameter(new Parameter(modelWithBLOBsType, modelParamName));
 
         List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
-        List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
-        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+        List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
+        for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
 
             // 非自增主键, 默认使用UUID
@@ -316,17 +324,21 @@ public class ServicePlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method updateEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+    private Method updateEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, boolean isSelective) {
         String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
-        method.setName("update");
+        if(isSelective) {
+            method.setName("updateSelective");
+        } else {
+            method.setName("update");
+        }
         method.setReturnType(modelWithBLOBsType);
         method.addParameter(new Parameter(modelWithBLOBsType, modelParamName));
 
-        List<IntrospectedColumn> introspectedColumnsList = introspectedTable.getAllColumns();
-        for (IntrospectedColumn introspectedColumn : introspectedColumnsList) {
+        List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
+        for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             // mysql date introspectedColumn.isJDBCDateColumn()
             // mysql time introspectedColumn.isJDBCTimeColumn()
             // mysql dateTime ??
@@ -336,7 +348,11 @@ public class ServicePlugin extends PluginAdapter {
                 method.addBodyLine(modelParamName + ".setUpdateTime(new Date());");
             }
         }
-        method.addBodyLine("if(this." + getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ") == 0) {");
+        if(isSelective) {
+            method.addBodyLine("if(this." + getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ") == 0) {");
+        } else {
+            method.addBodyLine("if(this." + getMapper() + "updateByPrimaryKeyWithBLOBs(" + modelParamName + ") == 0) {");
+        }
         method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"记录不存在\");");
         method.addBodyLine("}");
         method.addBodyLine("return " + modelParamName + ";");
@@ -357,8 +373,8 @@ public class ServicePlugin extends PluginAdapter {
         method.setReturnType(FullyQualifiedJavaType.getBooleanPrimitiveInstance());
 
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-        for (Parameter parameter : keyParameterList) {
-            method.addParameter(parameter);
+        for (Parameter keyParameter : keyParameterList) {
+            method.addParameter(keyParameter);
         }
         String params = PluginUtils.getCallParameters(keyParameterList);
 
@@ -379,8 +395,8 @@ public class ServicePlugin extends PluginAdapter {
         method.setReturnType(modelWithBLOBsType);
 
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-        for (Parameter parameter : keyParameterList) {
-            method.addParameter(parameter);
+        for (Parameter keyParameter : keyParameterList) {
+            method.addParameter(keyParameter);
         }
         String params = PluginUtils.getCallParameters(keyParameterList);
 
