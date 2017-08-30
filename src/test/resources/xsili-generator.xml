@@ -4,8 +4,8 @@
 "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
 
 <generatorConfiguration>
-	  <!-- defaultModelType: hierarchical flat conditional -->
-	  <context id="MySqlTables" targetRuntime="MyBatis3" defaultModelType="flat">
+	<!-- defaultModelType: flat hierarchical conditional -->
+	<context id="MySqlTables" targetRuntime="MyBatis3" defaultModelType="flat">
 		
 		<property name="javaFileEncoding" value="UTF-8"/>
 		<property name="beginningDelimiter" value="`"/>
