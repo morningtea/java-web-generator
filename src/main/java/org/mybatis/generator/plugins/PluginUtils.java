@@ -3,6 +3,7 @@ package org.mybatis.generator.plugins;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
@@ -53,7 +54,7 @@ public class PluginUtils {
     /**
      * 如果有单独创建key, 则返回key类型
      * 
-     * @return
+     * @return can be null
      */
     public static FullyQualifiedJavaType getKeyClass(IntrospectedTable introspectedTable) {
         // 导入key类型
@@ -87,18 +88,22 @@ public class PluginUtils {
     }
 
     /**
-     * 从声明参数拼接调用参数, 如: (String name, int age) --> name,age
+     * 从声明参数拼接调用参数, 如: (String name, int age) --> name, age
      * 
      * @param list
      * @return
      */
     public static String getCallParameters(List<Parameter> list) {
+    	if(CollectionUtils.isEmpty(list)) {
+    		return "";
+    	}
+    	
         StringBuffer paramsBuf = new StringBuffer();
         for (Parameter parameter : list) {
             paramsBuf.append(parameter.getName());
-            paramsBuf.append(",");
+            paramsBuf.append(", ");
         }
-        paramsBuf.setLength(paramsBuf.length() - 1);
+        paramsBuf.setLength(paramsBuf.lastIndexOf(","));
         return paramsBuf.toString();
     }
 
@@ -147,6 +152,11 @@ public class PluginUtils {
         return sb.toString();
     }
 
+    /**
+     * java.lang.Object --> object
+     * @param javaType
+     * @return
+     */
     public static String getTypeParamName(FullyQualifiedJavaType javaType) {
         return PluginUtils.lowerCaseFirstLetter(javaType.getShortName());
     }

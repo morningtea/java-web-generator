@@ -27,15 +27,15 @@
         	 <property name="cache_type" value="com.xsili.cache.mybatis.redis.RedisCache" /> 
         </plugin> -->
 		
+		<!-- 生成分页插件 -->
+		<plugin type="org.mybatis.generator.xsili.plugins.PaginationPlugin">
+			<property name="queryParam" value="org.mybatis.generator.xsili.outputdependence.page.QueryParam" />
+		</plugin>
+		
 		<!-- Mapper注解 -->
 		<plugin type="org.mybatis.generator.plugins.MapperAnnotationPlugin">
 			<property name="annotationClass" value="org.springframework.stereotype.Repository" />
 			<property name="annotationName" value="@Repository" />
-		</plugin>
-		
-		<!-- 生成分页插件 -->
-		<plugin type="org.mybatis.generator.xsili.plugins.PaginationPlugin">
-			<property name="queryParam" value="org.mybatis.generator.xsili.outputdependence.page.QueryParam" />
 		</plugin>
         
         <!-- service代码生成 -->
@@ -59,7 +59,7 @@
 			<property name="targetPackage" value="com.xsili.module.controller" />
 			<property name="targetPackageService" value="com.xsili.module.service" />
 			<!-- 接口风格, restful or 传统CRUD -->
-			<property name="isRestful" value="true" />
+			<property name="enableRestful" value="true" />
 			<!-- 开启Swagger文档注释 -->
 			<property name="enableSwaggerAnnotation" value="true" />
 			<!-- 基类 -->

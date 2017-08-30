@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
  */
 public class SpringMvcControllerPlugin extends PluginAdapter {
 
-    private boolean isRestful = true;
+    private boolean enableRestful = true;
     private boolean enableSwaggerAnnotation = true;
     private FullyQualifiedJavaType abstractControllerType;
     private FullyQualifiedJavaType resultModelType;
@@ -61,9 +61,9 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
     @Override
     public boolean validate(List<String> warnings) {
-        String isRestfulStr = properties.getProperty("isRestful");
-        if (StringUtils.isNotBlank(isRestfulStr)) {
-            isRestful = Boolean.parseBoolean(isRestfulStr);
+        String enableRestfulStr = properties.getProperty("enableRestful");
+        if (StringUtils.isNotBlank(enableRestfulStr)) {
+        	enableRestful = Boolean.parseBoolean(enableRestfulStr);
         }
         String enableSwaggerAnnotationStr = properties.getProperty("enableSwaggerAnnotation");
         if (StringUtils.isNotBlank(enableSwaggerAnnotationStr)) {
@@ -79,7 +79,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
         String resultModel = properties.getProperty("resultModel");
         if (StringUtils.isBlank(resultModel)) {
-            throw new IllegalArgumentException("property resultModel is null");
+            throw new RuntimeException("property resultModel is null");
         }
         resultModelType = new FullyQualifiedJavaType(resultModel);
 
@@ -124,11 +124,13 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         controllerType = new FullyQualifiedJavaType(targetPackage + "." + tableName + "Controller");
 
         TopLevelClass topLevelClass = new TopLevelClass(controllerType);
+        
         // 导入必要的类
         addImport(topLevelClass, introspectedTable);
+        
         // 实现类
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
-        addController(topLevelClass, introspectedTable, files);
+        generateController(topLevelClass, introspectedTable, files);
 
         return files;
     }
@@ -140,7 +142,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
      * @param introspectedTable
      * @param files
      */
-    private void addController(TopLevelClass topLevelClass,
+    private void generateController(TopLevelClass topLevelClass,
                                IntrospectedTable introspectedTable,
                                List<GeneratedJavaFile> files) {
         topLevelClass.setVisibility(JavaVisibility.PUBLIC);
@@ -150,8 +152,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         // 添加注解
         topLevelClass.addAnnotation("@RestController");
-        topLevelClass.addAnnotation("@RequestMapping(\"/v1/" + PluginUtils.humpToEnDash(modelType.getShortName())
-                                    + "/\")");
+        topLevelClass.addAnnotation("@RequestMapping(\"/v1/" + modelType.getShortName().toLowerCase() + "s" + "\")");
 
         // 添加 Mapper引用
         addServiceField(topLevelClass);
@@ -211,7 +212,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         topLevelClass.addImportedType(annotationRequestMapping);
         topLevelClass.addImportedType(annotationRequestMethod);
         topLevelClass.addImportedType(annotationRequestParam);
-        if (isRestful) {
+        if (enableRestful) {
             topLevelClass.addImportedType(annotationPathVariable);
         }
         if (enableSwaggerAnnotation) {
@@ -233,7 +234,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setName("create");
         method.setReturnType(resultModelType);
-        if (this.isRestful) {
+        if (this.enableRestful) {
             method.addAnnotation(getRestfulRequestMappingAnnotation(null, RequestMethod.POST));
         } else {
             method.addAnnotation("@RequestMapping(value = \"/create\", method = RequestMethod.POST)");
@@ -288,26 +289,23 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
      * @return
      */
     private Method updateEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, boolean isSelective) {
+        String methodName = isSelective ? "updateSelective" : "update";
         String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
 
         List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
-        if (isSelective) {
-            method.setName("updateSelective");
-        } else {
-            method.setName("update");
-        }
+        method.setName(methodName);
         method.setReturnType(resultModelType);
-        if (this.isRestful) {
+        if (this.enableRestful) {
             if (isSelective) {
                 method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.PATCH));
             } else {
                 method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.PUT));
             }
         } else {
-            method.addAnnotation("@RequestMapping(value = \"/update\", method = RequestMethod.POST)");
+            method.addAnnotation("@RequestMapping(value = \"/" + PluginUtils.humpToEnDash(methodName) + "\", method = RequestMethod.POST)");
         }
 
         // swagger
@@ -371,10 +369,10 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.setReturnType(resultModelType);
 
         List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
-        if (this.isRestful) {
+        if (this.enableRestful) {
             method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.DELETE));
         } else {
-            method.addAnnotation("@RequestMapping(value = \"/delete\", method = RequestMethod.DELETE)");
+            method.addAnnotation("@RequestMapping(value = \"/delete\", method = RequestMethod.POST)");
         }
 
         // swagger
@@ -428,7 +426,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.setReturnType(resultModelType);
 
         List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
-        if (this.isRestful) {
+        if (this.enableRestful) {
             method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.GET));
         } else {
             method.addAnnotation("@RequestMapping(value = \"/get\", method = RequestMethod.GET)");
@@ -488,7 +486,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setName("list");
         method.setReturnType(resultModelType);
-        if (this.isRestful) {
+        if (this.enableRestful) {
             method.addAnnotation(getRestfulRequestMappingAnnotation(null, RequestMethod.GET));
         } else {
             method.addAnnotation("@RequestMapping(value = \"/list\", method = RequestMethod.GET)");
@@ -551,10 +549,12 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         if (primaryKeyColumns == null) {
             return "@RequestMapping(method = " + methodStr + ")";
         } else {
+        	// 复合ID的Path表现形式 --> "/id,id2"
             String pathStr = "";
             for (IntrospectedColumn primaryKeyColumn : primaryKeyColumns) {
-                pathStr += "/{" + primaryKeyColumn.getJavaProperty() + "}";
+                pathStr += "{" + primaryKeyColumn.getJavaProperty() + "}" + ",";
             }
+            pathStr = "/" + pathStr.substring(0, pathStr.lastIndexOf(","));
             return "@RequestMapping(value = \"" + pathStr + "\", method = " + methodStr + ")";
         }
     }
@@ -563,7 +563,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         for (IntrospectedColumn primaryKeyColumn : primaryKeyColumns) {
             String javaProperty = primaryKeyColumn.getJavaProperty();
             Parameter parameter = new Parameter(primaryKeyColumn.getFullyQualifiedJavaType(), javaProperty);
-            if (isRestful) {
+            if (enableRestful) {
                 parameter.addAnnotation("@PathVariable(\"" + primaryKeyColumn.getJavaProperty() + "\")");
             } else {
                 parameter.addAnnotation("@RequestParam(required = true)");

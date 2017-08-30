@@ -121,14 +121,13 @@ public class ServicePlugin extends PluginAdapter {
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
         Interface serviceInterface = new Interface(serviceInterfaceType);
         TopLevelClass topLevelClass = new TopLevelClass(serviceType);
+        
         // 导入必要的类
         addImport(serviceInterface, topLevelClass, introspectedTable);
         // 接口
-        addService(serviceInterface, topLevelClass, introspectedTable, files);
+        generateService(serviceInterface, topLevelClass, introspectedTable, files);
         // 实现类
-        addServiceImpl(topLevelClass, introspectedTable, files);
-        // 日志
-        addLoggerField(topLevelClass);
+        generateServiceImpl(topLevelClass, introspectedTable, files);
 
         return files;
     }
@@ -138,7 +137,7 @@ public class ServicePlugin extends PluginAdapter {
      * 
      * @param files
      */
-    private void addService(Interface serviceInterface,
+    private void generateService(Interface serviceInterface,
                             TopLevelClass topLevelClass,
                             IntrospectedTable introspectedTable,
                             List<GeneratedJavaFile> files) {
@@ -179,7 +178,7 @@ public class ServicePlugin extends PluginAdapter {
      * @param introspectedTable
      * @param files
      */
-    private void addServiceImpl(TopLevelClass topLevelClass,
+    private void generateServiceImpl(TopLevelClass topLevelClass,
                                 IntrospectedTable introspectedTable,
                                 List<GeneratedJavaFile> files) {
         topLevelClass.setVisibility(JavaVisibility.PUBLIC);
@@ -190,6 +189,8 @@ public class ServicePlugin extends PluginAdapter {
                                     + PluginUtils.lowerCaseFirstLetter(serviceInterfaceType.getShortName()) + "\")");
         topLevelClass.addImportedType(annotationService);
 
+        // 日志
+        addLoggerField(topLevelClass);
         // 添加 Mapper引用
         addMapperField(topLevelClass);
 
