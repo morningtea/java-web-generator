@@ -352,7 +352,13 @@ public class ServicePlugin extends PluginAdapter {
         if(isSelective) {
             method.addBodyLine("if(this." + getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ") == 0) {");
         } else {
-            method.addBodyLine("if(this." + getMapper() + "updateByPrimaryKeyWithBLOBs(" + modelParamName + ") == 0) {");
+            String mapperUpdateMethod = "";
+            if (PluginUtils.hasBLOBColumns(introspectedTable)) {
+                mapperUpdateMethod = "updateByPrimaryKeyWithBLOBs";
+            } else {
+                mapperUpdateMethod = "updateByPrimaryKey";
+            }
+            method.addBodyLine("if(this." + getMapper() + mapperUpdateMethod + "(" + modelParamName + ") == 0) {");
         }
         method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"记录不存在\");");
         method.addBodyLine("}");

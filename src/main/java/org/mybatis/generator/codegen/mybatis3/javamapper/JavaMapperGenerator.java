@@ -45,6 +45,7 @@ import org.mybatis.generator.codegen.mybatis3.javamapper.elements.UpdateByPrimar
 import org.mybatis.generator.codegen.mybatis3.javamapper.elements.UpdateByPrimaryKeyWithoutBLOBsMethodGenerator;
 import org.mybatis.generator.codegen.mybatis3.xmlmapper.XMLMapperGenerator;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.plugins.PluginUtils;
 
 /**
  * @author Jeff Butler
@@ -104,8 +105,13 @@ public class JavaMapperGenerator extends AbstractJavaClientGenerator {
 //        addUpdateByExampleWithBLOBsMethod(interfaze);
 //        addUpdateByExampleWithoutBLOBsMethod(interfaze);
         addUpdateByPrimaryKeySelectiveMethod(interfaze);
-        addUpdateByPrimaryKeyWithBLOBsMethod(interfaze);
-//        addUpdateByPrimaryKeyWithoutBLOBsMethod(interfaze);
+        
+//        if (introspectedTable.getRules().generateRecordWithBLOBsClass()) {
+        if (PluginUtils.hasBLOBColumns(introspectedTable)) {
+            addUpdateByPrimaryKeyWithBLOBsMethod(interfaze);
+        } else {
+            addUpdateByPrimaryKeyWithoutBLOBsMethod(interfaze);
+        }
 
         List<CompilationUnit> answer = new ArrayList<CompilationUnit>();
         if (context.getPlugins().clientGenerated(interfaze, null,

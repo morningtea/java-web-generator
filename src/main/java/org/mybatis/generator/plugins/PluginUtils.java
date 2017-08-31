@@ -15,6 +15,15 @@ public class PluginUtils {
     public static final String PRIMARY_KEY_PARAMETER_NAME = "key";
 
     /**
+     * 
+     * @param introspectedTable
+     * @return
+     */
+    public static boolean hasBLOBColumns(IntrospectedTable introspectedTable) {
+        return CollectionUtils.isNotEmpty(introspectedTable.getBLOBColumns());
+    }
+    
+    /**
      * 生成 <b>.getter(params);</b> call
      * 
      * @return

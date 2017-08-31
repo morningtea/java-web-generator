@@ -124,6 +124,7 @@
         <!-- 数据库表-->
 		<!-- <table tableName="%" /> -->
 		
+		<table tableName="t_plain"  domainObjectName="Plain" />
 		<table tableName="t_blob_auto_increment"  domainObjectName="BlobAutoIncrement" />
 		<table tableName="t_blob_union_key"  domainObjectName="BlobUnionKey" />
 		
