@@ -45,7 +45,7 @@ import org.mybatis.generator.codegen.mybatis3.javamapper.elements.UpdateByPrimar
 import org.mybatis.generator.codegen.mybatis3.javamapper.elements.UpdateByPrimaryKeyWithoutBLOBsMethodGenerator;
 import org.mybatis.generator.codegen.mybatis3.xmlmapper.XMLMapperGenerator;
 import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.plugins.PluginUtils;
+import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
  * @author Jeff Butler

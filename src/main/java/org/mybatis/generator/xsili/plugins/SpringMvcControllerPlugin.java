@@ -15,7 +15,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.plugins.PluginUtils;
+import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
