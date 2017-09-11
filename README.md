@@ -1,5 +1,5 @@
 #### Overview
-本项目基于mybatis-generator-core进行构建, 主要更新如下:
+	本项目基于mybatis-generator-core进行构建, 主要更新如下:
 
 1. 添加了SpringMvcController, Service, MapperJunitTest三个代码生成插件
 2. 集成Mybatis分页插件 [xsili-mybatis-plugin-page](https://github.com/morningtea/xsili-mybatis-plugin-page "Mybatis分页插件")
@@ -8,7 +8,7 @@
 
 #### Get started
 ##### 示例
-插件支持hsqldb数据库内存模式, 只需要执行 MyBatisGeneratorTest即可生成样例代码.  
+	插件支持hsqldb数据库内存模式, 只需要执行 MyBatisGeneratorTest即可生成样例代码.  
 1. 测试脚本 src/test/resources/hsqldb-test.sql
 2. 测试入口 src/test/java/generator/MyBatisGeneratorTest.java
 
@@ -29,8 +29,8 @@ addUpdateByExampleWithBLOBsMethod(interfaze);
 addUpdateByExampleWithoutBLOBsMethod(interfaze);  
 addUpdateByPrimaryKeyWithoutBLOBsMethod(interfaze);  
 
-除了第4点, 以上修改均是功能扩展, 可以兼容MBG的原有功能和配置项.
+	除了第4点, 以上修改均是功能扩展, 可以兼容MBG的原有功能和配置项.
 
-其他
+	其他
 1. src/site 是mybatis-generator-core-1.3.6的官方文档
 2. 支持MySQL, Oracle, PostgreSQL等数据库, 只要该数据库的JDBC驱动实现了DatabaseMetaData接口, 特别是"getColumns"和"getPrimaryKeys"方法
