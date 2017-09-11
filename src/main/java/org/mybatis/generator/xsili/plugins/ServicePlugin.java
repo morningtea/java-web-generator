@@ -286,21 +286,13 @@ public class ServicePlugin extends PluginAdapter {
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
 
-            // 非自增主键, 默认使用UUID
             if (isPrimaryKey) {
-                if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
-                    String params = "";
-                    if (introspectedColumn.isStringColumn()) {
-                        if (idGeneratorType != null) {
-                            topLevelClass.addImportedType(idGeneratorType);
-                            params = idGeneratorType.getShortName() + ".generateId()";
-                        } else {
-                            params = "";
-                        }
-                    } else {
-                        // 字符串以外的类型, 设置为null, 需要用户手动修改
-                        params = "null";
-                    }
+                // if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
+                // }
+                // 字符类型主键
+                if (introspectedColumn.isStringColumn() && idGeneratorType != null) {
+                    topLevelClass.addImportedType(idGeneratorType);
+                    String params = idGeneratorType.getShortName() + ".generateId()";
                     method.addBodyLine(modelParamName + PluginUtils.generateSetterCall(introspectedColumn, params));
                 }
             } else if ("createTime".equals(introspectedColumn.getJavaProperty())) {

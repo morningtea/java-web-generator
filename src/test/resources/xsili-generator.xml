@@ -49,7 +49,7 @@
 			<property name="pager" value="org.mybatis.generator.xsili.outputdependence.page.Pager" />
 			<!-- 选填, 业务异常 -->
 			<property name="businessException" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException" />
-			<!-- 选填, id生成器 -->
+			<!-- 选填, id生成器. 主键是字符类型且idGenerator!=null, 则调用 idGenerator#generateId() 设置主键值 -->
 			<property name="idGenerator" value="org.mybatis.generator.xsili.outputdependence.IDGenerator" />
 		</plugin>
 		
