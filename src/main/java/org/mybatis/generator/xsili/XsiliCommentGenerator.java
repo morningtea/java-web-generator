@@ -106,8 +106,8 @@ public class XsiliCommentGenerator implements CommentGenerator {
         if (s != null) {
             sb.append(" * @date ");
             sb.append(s);
+            javaElement.addJavaDocLine(sb.toString());
         }
-        javaElement.addJavaDocLine(sb.toString());
     }
 
     /**

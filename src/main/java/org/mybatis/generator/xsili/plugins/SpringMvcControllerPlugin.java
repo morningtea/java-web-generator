@@ -320,6 +320,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         List<Parameter> keyParameters = addKeyParameters(method, primaryKeyColumns);
 
         // 添加方法参数
+        List<Parameter> notKeyParameters = new ArrayList<>();
         String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
         String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
@@ -329,6 +330,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
                 Parameter parameter = new Parameter(introspectedColumn.getFullyQualifiedJavaType(), javaProperty);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
+                notKeyParameters.add(parameter);
             }
         }
 
@@ -344,7 +346,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         } else {
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new " + allFieldModelType.getShortName() + "();");
         }
-        PluginUtils.generateModelSetterBodyLine(modelParamName, method, method.getParameters());
+        PluginUtils.generateModelSetterBodyLine(modelParamName, method, notKeyParameters);
 
         // 校验参数
         if (validatorUtilType != null) {

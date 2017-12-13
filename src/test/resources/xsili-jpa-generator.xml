@@ -7,15 +7,14 @@
 	<!-- targetRuntime: Jpa2, MyBatis3, MyBatis3Simple -->
 	<!-- defaultModelType: flat hierarchical conditional -->
 	<context id="MySqlTables" targetRuntime="Jpa2" defaultModelType="flat">
-		
+		<!-- 扩展配置 -->
 		<property name="createdDateName" value="createdDate"/>
 		<property name="updatedDateName" value="updatedDate"/>
 		
+		<!-- 更多配置参考 PropertyRegistry -->
 		<property name="javaFileEncoding" value="UTF-8"/>
 		<property name="beginningDelimiter" value="`"/>
         <property name="endingDelimiter" value="`"/>
-        <!-- <property name="javaFormatter" value=""/> -->
-        <!-- <property name="xmlFormatter" value=""/> -->
         
         <!-- 序列化插件 -->
         <plugin type="org.mybatis.generator.plugins.SerializablePlugin"></plugin>
@@ -74,7 +73,7 @@
 			<!-- 是否自动生成注释 -->
 			<property name="suppressAllComments" value="false" />
 			<property name="suppressDate" value="false"/>
-			<property name="dateFormat" value="yyyy-MM-dd HH:mm"/>
+			<property name="dateFormat" value="yyyy-MM-dd"/>
 			<property name="addRemarkComments" value="true"/>
 		</commentGenerator>
 		
@@ -107,6 +106,7 @@
 		</javaClientGenerator>
 		
         <!-- 数据库表-->
+        
 		<!-- <table tableName="%" /> -->
 		
 		<table tableName="t_table1"  domainObjectName="Table1" />
