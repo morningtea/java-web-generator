@@ -486,11 +486,18 @@ public class ServicePlugin extends PluginAdapter {
         
         method.addBodyLine("// 通过ExpressionUtils构建Predicate查询条件");
         method.addBodyLine("Predicate predicate = null;");
+        
         method.addBodyLine("");
         method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, new Sort(Direction.DESC, \"id\"));");
 
-        method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = " + getMapper()
-                           + "findAll(predicate, pageable);");
+        method.addBodyLine("");
+        method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = null;");
+        method.addBodyLine("if(predicate != null) {");
+        method.addBodyLine("page = " + getMapper() + "findAll(predicate, pageable);");
+        method.addBodyLine("} else {");
+        method.addBodyLine("page = " + getMapper() + "findAll(pageable);");
+        method.addBodyLine("}");
+        
         method.addBodyLine("return " + pageType.getShortName() + ".getPage(page);");
         
         return method;
