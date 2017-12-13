@@ -15,6 +15,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -24,7 +25,7 @@ import org.mybatis.generator.xsili.plugins.util.PluginUtils;
  * @author 叶鹏
  * @date 2017年8月25日
  */
-public class MapperJunitPlugin extends PluginAdapter {
+public class MybatisMapperJunitPlugin extends PluginAdapter {
 
     private FullyQualifiedJavaType junit;
     private FullyQualifiedJavaType assertType;
@@ -64,7 +65,7 @@ public class MapperJunitPlugin extends PluginAdapter {
     }
 
     // 初始化
-    public MapperJunitPlugin() {
+    public MybatisMapperJunitPlugin() {
         super();
         junit = new FullyQualifiedJavaType("org.junit.Test");
         assertType = new FullyQualifiedJavaType("static org.junit.Assert.assertEquals");
@@ -120,8 +121,8 @@ public class MapperJunitPlugin extends PluginAdapter {
 
         String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
         String key = "";
-        FullyQualifiedJavaType keyType = PluginUtils.getKeyClass(introspectedTable);
-        if (keyType != null) {
+        if (introspectedTable.getRules().generatePrimaryKeyClass()) {
+            FullyQualifiedJavaType keyType = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
             key = "(" + keyType.getShortName() + ") " + modelParamName;
         } else {
             List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
@@ -136,13 +137,13 @@ public class MapperJunitPlugin extends PluginAdapter {
         method.addBodyLine(modelWithBLOBsType.getShortName() + " " + modelParamName + " = new "
                            + modelWithBLOBsType.getShortName() + "();");
 
-        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
+        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
-            boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
-
             // 非自增主键, 默认使用UUID
-            if (isPrimaryKey) {
+            if (PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn)) {
                 if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
                     String params = "";
                     if (introspectedColumn.isStringColumn()) {
@@ -158,16 +159,15 @@ public class MapperJunitPlugin extends PluginAdapter {
                     }
                     method.addBodyLine(modelParamName + PluginUtils.generateSetterCall(introspectedColumn, params));
                 }
-            } else if ("createTime".equals(introspectedColumn.getJavaProperty())) {
+            } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".setCreateTime(new Date());");
-            } else if ("updateTime".equals(introspectedColumn.getJavaProperty())) {
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdDateName) + "(new Date());");
+            } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".setUpdateTime(new Date());");
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
             } else if (introspectedColumn.isStringColumn()) {
                 String javaProperty = introspectedColumn.getJavaProperty();
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(\""
-                                   + javaProperty + "\");");
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(\"" + javaProperty + "\");");
             }
         }
 
@@ -208,20 +208,20 @@ public class MapperJunitPlugin extends PluginAdapter {
         method.addBodyLine(modelCriteriaType.getShortName() + " criteria = new " + modelCriteriaType.getShortName()
                            + "();");
         method.addBodyLine("criteria.createCriteria().andIdEqualTo(" + modelParamName + ".getId());");
-        method.addBodyLine("List<" + modelType.getShortName() + "> " + modelType.getShortName() + "s =" + getMapper()
+        method.addBodyLine("List<" + modelType.getShortName() + "> " + modelType.getShortName() + "s = " + getMapper()
                            + "selectByExample(criteria);");
         method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
 
         method.addBodyLine("");
         method.addBodyLine("//vaild countByExample Test");
-        method.addBodyLine("long connt=" + getMapper() + "countByExample(criteria);");
+        method.addBodyLine("long connt = " + getMapper() + "countByExample(criteria);");
         method.addBodyLine("assertEquals(1, connt);");
 
         method.addBodyLine("");
         method.addBodyLine("//vaild page Test");
         method.addBodyLine("criteria.setPage(1);");
         method.addBodyLine("criteria.setLimit(10);");
-        method.addBodyLine(modelType.getShortName() + "s =" + getMapper() + "selectByExample(criteria);");
+        method.addBodyLine(modelType.getShortName() + "s = " + getMapper() + "selectByExample(criteria);");
         method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
 
         method.addBodyLine("");
@@ -235,7 +235,6 @@ public class MapperJunitPlugin extends PluginAdapter {
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
         for (Parameter keyParameter : keyParameterList) {
             if (keyParameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
-                topLevelClass.addImportedType(keyParameter.getType());
                 topLevelClass.addImportedType(keyParameter.getType());
             }
         }

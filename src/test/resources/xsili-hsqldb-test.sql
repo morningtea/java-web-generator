@@ -17,8 +17,8 @@ CREATE TABLE t_blob_auto_id (
   name varchar(20),
   blob blob,
   clob clob,
-  create_time datetime NOT NULL,
-  update_time datetime DEFAULT NULL,
+  created_date datetime NOT NULL,
+  updated_date datetime DEFAULT NULL,
   PRIMARY KEY (id)
 );
 comment on table t_blob_auto_id is '测试';
@@ -26,8 +26,8 @@ comment on column t_blob_auto_id.id is '自增主键';
 comment on column t_blob_auto_id.name is '名称';
 comment on column t_blob_auto_id.blob is '二进制';
 comment on column t_blob_auto_id.clob is 'clob';
-comment on column t_blob_auto_id.create_time is '创建时间';
-comment on column t_blob_auto_id.update_time is '创建时间';
+comment on column t_blob_auto_id.created_date is '创建时间';
+comment on column t_blob_auto_id.updated_date is '创建时间';
 
 -- 联合主键
 CREATE TABLE t_blob_union_key (
@@ -36,8 +36,8 @@ CREATE TABLE t_blob_union_key (
   name varchar(20),
   blob blob,
   clob clob,
-  create_time datetime NOT NULL,
-  update_time datetime DEFAULT NULL,
+  created_date datetime NOT NULL,
+  updated_date datetime DEFAULT NULL,
   PRIMARY KEY (id, id2)
 );
 comment on table t_blob_union_key is '测试';
@@ -46,6 +46,6 @@ comment on column t_blob_union_key.id2 is '主键2';
 comment on column t_blob_union_key.name is '名称';
 comment on column t_blob_union_key.blob is '二进制';
 comment on column t_blob_union_key.clob is 'clob';
-comment on column t_blob_union_key.create_time is '创建时间';
-comment on column t_blob_union_key.update_time is '创建时间';
+comment on column t_blob_union_key.created_date is '创建时间';
+comment on column t_blob_union_key.updated_date is '创建时间';
 

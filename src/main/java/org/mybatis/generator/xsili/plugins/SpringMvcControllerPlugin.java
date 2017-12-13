@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
+import org.mybatis.generator.api.IntrospectedTable.TargetRuntime;
 import org.mybatis.generator.api.PluginAdapter;
 import org.mybatis.generator.api.dom.java.Field;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
@@ -15,6 +16,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -32,15 +34,15 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
     private FullyQualifiedJavaType abstractControllerType;
     private FullyQualifiedJavaType resultModelType;
     private FullyQualifiedJavaType validatorUtilType;
-    private FullyQualifiedJavaType pagerType;
+    private FullyQualifiedJavaType pageType;
 
     private FullyQualifiedJavaType controllerType;
     private FullyQualifiedJavaType serviceType;
-    private FullyQualifiedJavaType modelType;
+    private FullyQualifiedJavaType baseModelType;
     /**
-     * 如果有WithBlob, 则modelWithBLOBsType赋值为BlobModel, 否则赋值为BaseModel
+     * 如果有WithBlob, 则modelType赋值为BlobModel, 否则赋值为BaseModel
      */
-    private FullyQualifiedJavaType modelWithBLOBsType;
+    private FullyQualifiedJavaType allFieldModelType;
 
     private String targetPackage;
     private String targetPackageService;
@@ -83,11 +85,11 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         resultModelType = new FullyQualifiedJavaType(resultModel);
 
-        String pager = properties.getProperty("pager");
-        if (StringUtils.isBlank(pager)) {
-            throw new RuntimeException("property pager is null");
+        String page = properties.getProperty("page");
+        if (StringUtils.isBlank(page)) {
+            throw new RuntimeException("property page is null");
         } else {
-            pagerType = new FullyQualifiedJavaType(pager);
+            pageType = new FullyQualifiedJavaType(page);
         }
 
         String validatorUtil = properties.getProperty("validatorUtil");
@@ -116,10 +118,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");
 
-        modelWithBLOBsType = modelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
-        if (introspectedTable.getRules().generateRecordWithBLOBsClass()) {
-            modelWithBLOBsType = new FullyQualifiedJavaType(introspectedTable.getRecordWithBLOBsType());
-        }
+        baseModelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
+        allFieldModelType = introspectedTable.getRules().calculateAllFieldsClass();
         serviceType = new FullyQualifiedJavaType(targetPackageService + "." + tableName + "Service");
         controllerType = new FullyQualifiedJavaType(targetPackage + "." + tableName + "Controller");
 
@@ -152,7 +152,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         // 添加注解
         topLevelClass.addAnnotation("@RestController");
-        topLevelClass.addAnnotation("@RequestMapping(\"/v1/" + modelType.getShortName().toLowerCase() + "s" + "\")");
+        topLevelClass.addAnnotation("@RequestMapping(\"/v1/" + baseModelType.getShortName().toLowerCase() + "s" + "\")");
 
         // 添加 Mapper引用
         addServiceField(topLevelClass);
@@ -162,8 +162,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         Method addMethod = createEntity(topLevelClass, introspectedTable);
         topLevelClass.addMethod(addMethod);
 
-        Method updateMethod = updateEntity(topLevelClass, introspectedTable, false);
-        topLevelClass.addMethod(updateMethod);
+//        Method updateMethod = updateEntity(topLevelClass, introspectedTable, false);
+//        topLevelClass.addMethod(updateMethod);
 
         Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, true);
         topLevelClass.addMethod(updateSelectiveMethod);
@@ -194,7 +194,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             }
         }
 
-        topLevelClass.addImportedType(pagerType);
+        topLevelClass.addImportedType(pageType);
         if (abstractControllerType != null) {
             topLevelClass.addImportedType(abstractControllerType);
         }
@@ -204,8 +204,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
         topLevelClass.addImportedType(resultModelType);
         topLevelClass.addImportedType(serviceType);
-        topLevelClass.addImportedType(modelType);
-        topLevelClass.addImportedType(modelWithBLOBsType);
+//        topLevelClass.addImportedType(baseModelType);
+        topLevelClass.addImportedType(allFieldModelType);
 
         topLevelClass.addImportedType(annotationResource);
         topLevelClass.addImportedType(annotationController);
@@ -228,7 +228,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
      * @return
      */
     private Method createEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
-        String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
@@ -247,13 +247,14 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
 
         // 添加方法参数
-        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
+        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
-            boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
             String javaProperty = introspectedColumn.getJavaProperty();
             // 排除主键, 创建时间, 更新时间
-            if (!isPrimaryKey && !"createTime".equals(javaProperty) && !"updateTime".equals(javaProperty)) {
+            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdDateName.equals(javaProperty)
+                && !updatedDateName.equals(javaProperty)) {
                 Parameter parameter = new Parameter(introspectedColumn.getFullyQualifiedJavaType(), javaProperty);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
@@ -263,13 +264,14 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 填充参数
         method.addBodyLine("// 填充参数");
         StringBuilder sb = new StringBuilder();
-        sb.append(modelWithBLOBsType.getShortName() + " " + modelParamName);
+        sb.append(allFieldModelType.getShortName() + " " + modelParamName);
         sb.append(" = ");
-        sb.append("new ").append(modelWithBLOBsType.getShortName()).append("();");
+        sb.append("new ").append(allFieldModelType.getShortName()).append("();");
         method.addBodyLine(sb.toString());
-        PluginUtils.generateModelSetterBodyLine(modelParamName, method);
+        PluginUtils.generateModelSetterBodyLine(modelParamName, method, method.getParameters());
 
         if (validatorUtilType != null) {
+            method.addBodyLine("");
             method.addBodyLine("// 校验参数");
             method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
         }
@@ -290,9 +292,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
      */
     private Method updateEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, boolean isSelective) {
         String methodName = isSelective ? "updateSelective" : "update";
-        String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
-
-        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
@@ -300,9 +300,9 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.setReturnType(resultModelType);
         if (this.enableRestful) {
             if (isSelective) {
-                method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.PATCH));
+                method.addAnnotation(getRestfulRequestMappingAnnotation(introspectedTable, RequestMethod.PATCH));
             } else {
-                method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.PUT));
+                method.addAnnotation(getRestfulRequestMappingAnnotation(introspectedTable, RequestMethod.PUT));
             }
         } else {
             method.addAnnotation("@RequestMapping(value = \"/" + PluginUtils.humpToEnDash(methodName) + "\", method = RequestMethod.POST)");
@@ -316,13 +316,16 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
 
         // 添加方法参数(主键)
-        addKeyParameters(method, primaryKeyColumns);
+        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        List<Parameter> keyParameters = addKeyParameters(method, primaryKeyColumns);
+
         // 添加方法参数
+        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
+        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
-            boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
-            if (!isPrimaryKey && !"createTime".equals(javaProperty) && !"updateTime".equals(javaProperty)) {
+            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdDateName.equals(javaProperty) && !updatedDateName.equals(javaProperty)) {
                 Parameter parameter = new Parameter(introspectedColumn.getFullyQualifiedJavaType(), javaProperty);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
@@ -331,15 +334,21 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
         // 填充参数
         method.addBodyLine("// 填充参数");
-        StringBuilder sb = new StringBuilder();
-        sb.append(modelWithBLOBsType.getShortName() + " " + modelParamName);
-        sb.append(" = ");
-        sb.append("new ").append(modelWithBLOBsType.getShortName()).append("();");
-        method.addBodyLine(sb.toString());
-        PluginUtils.generateModelSetterBodyLine(modelParamName, method);
+        if(isSelective && introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            // 填充key
+            String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
+            method.addBodyLine("if(" + modelParamName + " == null) {");
+            method.addBodyLine("return super.error(\"记录不存在\");");
+            method.addBodyLine("}");
+        } else {
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new " + allFieldModelType.getShortName() + "();");
+        }
+        PluginUtils.generateModelSetterBodyLine(modelParamName, method, method.getParameters());
 
         // 校验参数
         if (validatorUtilType != null) {
+            method.addBodyLine("");
             method.addBodyLine("// 校验参数");
             method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
         }
@@ -347,9 +356,15 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 调用Service
         method.addBodyLine("");
         if (isSelective) {
-            method.addBodyLine(modelParamName + " = this." + getService() + "update(" + modelParamName + ");");
+            String serviceMethodName = "";
+            if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {// jpa2 统一调用service.update
+                serviceMethodName = "update";
+            } else {
+                serviceMethodName = "updateSelective";
+            }
+            method.addBodyLine(modelParamName + " = this." + getService() + serviceMethodName + "(" + modelParamName + ");");
         } else {
-            method.addBodyLine(modelParamName + " = this." + getService() + "updateSelective(" + modelParamName + ");");
+            method.addBodyLine(modelParamName + " = this." + getService() + "update(" + modelParamName + ");");
         }
         method.addBodyLine("return super.success(" + modelParamName + ");");
 
@@ -368,9 +383,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.setName("delete");
         method.setReturnType(resultModelType);
 
-        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
         if (this.enableRestful) {
-            method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.DELETE));
+            method.addAnnotation(getRestfulRequestMappingAnnotation(introspectedTable, RequestMethod.DELETE));
         } else {
             method.addAnnotation("@RequestMapping(value = \"/delete\", method = RequestMethod.POST)");
         }
@@ -382,34 +396,23 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
 
         // 添加方法参数(主键)
-        addKeyParameters(method, primaryKeyColumns);
+        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        List<Parameter> keyParameters = addKeyParameters(method, primaryKeyColumns);
 
-        // 构造Service调用参数
-        String params = "";
-        String keyModelParamName = PluginUtils.PRIMARY_KEY_PARAMETER_NAME;
-        if (introspectedTable.getRules().generatePrimaryKeyClass()) {
-            FullyQualifiedJavaType keyModeltype = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
-            // 填充key参数
-            StringBuilder sb = new StringBuilder();
-            sb.append(keyModeltype.getShortName() + " " + keyModelParamName);
-            sb.append(" = ");
-            sb.append("new ").append(keyModeltype.getShortName()).append("();");
-            method.addBodyLine(sb.toString());
-            PluginUtils.generateModelSetterBodyLine(keyModelParamName, method);
-            // call param
-            params = keyModelParamName;
-        } else {
-            List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-            params = PluginUtils.getCallParameters(keyParameterList);
-        }
-
+        // 填充key
+        String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
+        
         // 调用Service
-        method.addBodyLine("boolean successful = this." + getService() + "delete(" + params + ");");
-        method.addBodyLine("if (!successful) {");
-        method.addBodyLine("return super.error(\"记录不存在或已被删除\");");
-        method.addBodyLine("} else {");
+//        method.addBodyLine("boolean successful = this." + getService() + "delete(" + params + ");");
+//        method.addBodyLine("if (!successful) {");
+//        method.addBodyLine("return super.error(\"记录不存在或已被删除\");");
+//        method.addBodyLine("} else {");
+//        method.addBodyLine("return super.success();");
+//        method.addBodyLine("}");
+        
+        method.addBodyLine("this." + getService() + "delete(" + keyParams + ");");
         method.addBodyLine("return super.success();");
-        method.addBodyLine("}");
+        
         return method;
     }
 
@@ -425,9 +428,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.setName("get");
         method.setReturnType(resultModelType);
 
-        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
         if (this.enableRestful) {
-            method.addAnnotation(getRestfulRequestMappingAnnotation(primaryKeyColumns, RequestMethod.GET));
+            method.addAnnotation(getRestfulRequestMappingAnnotation(introspectedTable, RequestMethod.GET));
         } else {
             method.addAnnotation("@RequestMapping(value = \"/get\", method = RequestMethod.GET)");
         }
@@ -437,37 +439,18 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             method.addAnnotation("@ApiOperation(value = \"详情\", notes = \"\", response = "
                                  + resultModelType.getShortName() + ".class)");
         }
-
+        
         // 添加方法参数(主键)
-        addKeyParameters(method, primaryKeyColumns);
+        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        List<Parameter> keyParameters = addKeyParameters(method, primaryKeyColumns);
 
-        // 构造Service调用参数
-        String params = "";
-        String keyModelParamName = PluginUtils.PRIMARY_KEY_PARAMETER_NAME;
-        if (introspectedTable.getRules().generatePrimaryKeyClass()) {
-            FullyQualifiedJavaType keyModeltype = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
-            // 填充key参数
-            StringBuilder sb = new StringBuilder();
-            sb.append(keyModeltype.getShortName() + " " + keyModelParamName);
-            sb.append(" = ");
-            sb.append("new ").append(keyModeltype.getShortName()).append("();");
-            method.addBodyLine(sb.toString());
-            PluginUtils.generateModelSetterBodyLine(keyModelParamName, method);
-            // call param
-            params = keyModelParamName;
-        } else {
-            List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-            params = PluginUtils.getCallParameters(keyParameterList);
-        }
+        // 填充key
+        String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
 
         // 调用Service
-        String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
-        StringBuilder sb = new StringBuilder();
-        sb.append(modelWithBLOBsType.getShortName() + " " + modelParamName);
-        sb.append(" = ");
-        sb.append("this.").append(getService()).append("get").append("(").append(params).append(");");
-        method.addBodyLine(sb.toString());
-        method.addBodyLine("if(" + modelParamName + " == null){");
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+        method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
+        method.addBodyLine("if(" + modelParamName + " == null) {");
         method.addBodyLine("return super.error(\"记录不存在\");");
         method.addBodyLine("}");
         method.addBodyLine("return super.success(" + modelParamName + ");");
@@ -499,17 +482,17 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
 
         // 添加方法分页参数
-        Parameter pageParameter = new Parameter(new FullyQualifiedJavaType("int"), "page");
+        Parameter pageParameter = new Parameter(new FullyQualifiedJavaType("int"), "pageNum");
         pageParameter.addAnnotation("@RequestParam(required = true)");
         method.addParameter(pageParameter);
-        Parameter limitParameter = new Parameter(new FullyQualifiedJavaType("int"), "limit");
+        Parameter limitParameter = new Parameter(new FullyQualifiedJavaType("int"), "pageSize");
         limitParameter.addAnnotation("@RequestParam(required = true)");
         method.addParameter(limitParameter);
 
         // 调用Service
-        method.addBodyLine(pagerType.getShortName() + "<" + modelType.getShortName() + "> pager = " + getService()
-                           + "list(page, limit);");
-        method.addBodyLine("return super.success(pager);");
+        method.addBodyLine(pageType.getShortName() + "<" + allFieldModelType.getShortName() + "> page = " + getService()
+                           + "list(pageNum, pageSize);");
+        method.addBodyLine("return super.success(page);");
         return method;
     }
 
@@ -531,8 +514,13 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         return PluginUtils.lowerCaseFirstLetter(serviceType.getShortName()) + ".";
     }
 
-    private String getRestfulRequestMappingAnnotation(List<IntrospectedColumn> primaryKeyColumns,
+    private String getRestfulRequestMappingAnnotation(IntrospectedTable introspectedTable,
                                                       RequestMethod method) {
+        List<IntrospectedColumn> primaryKeyColumns = null;
+        if(introspectedTable != null) {
+            primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        }
+        
         String methodStr = "";
         if (method == RequestMethod.POST) {
             methodStr = "RequestMethod.POST";
@@ -559,7 +547,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
     }
 
-    private void addKeyParameters(Method method, List<IntrospectedColumn> primaryKeyColumns) {
+    private List<Parameter> addKeyParameters(Method method, List<IntrospectedColumn> primaryKeyColumns) {
+        List<Parameter> list = new ArrayList<>();
         for (IntrospectedColumn primaryKeyColumn : primaryKeyColumns) {
             String javaProperty = primaryKeyColumn.getJavaProperty();
             Parameter parameter = new Parameter(primaryKeyColumn.getFullyQualifiedJavaType(), javaProperty);
@@ -569,7 +558,34 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
                 parameter.addAnnotation("@RequestParam(required = true)");
             }
             method.addParameter(parameter);
+            list.add(parameter);
         }
+        return list;
+    }
+    
+    /**
+     * 如果有生成主键类, 则填充主键类, 并返回调用参数
+     * @param introspectedTable
+     * @param caller
+     * @return
+     */
+    private String prepareCallByKey(IntrospectedTable introspectedTable, Method caller, List<Parameter> keyParameters) {
+        // 构造Service调用参数
+        String params = "";
+        String keyModelParamName = PluginUtils.PRIMARY_KEY_PARAMETER_NAME;
+        if (introspectedTable.getRules().generatePrimaryKeyClass()) {
+            FullyQualifiedJavaType keyModeltype = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
+            // 填充key参数
+            caller.addBodyLine(keyModeltype.getShortName() + " " + keyModelParamName + " = new " + keyModeltype.getShortName() + "();");
+            PluginUtils.generateModelSetterBodyLine(keyModelParamName, caller, keyParameters);
+            // call param
+            params = keyModelParamName;
+        } else {
+            List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+            params = PluginUtils.getCallParameters(keyParameterList);
+        }
+        
+        return params;
     }
 
 }

@@ -4,8 +4,12 @@
 "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
 
 <generatorConfiguration>
+	<!-- targetRuntime: Jpa2, MyBatis3, MyBatis3Simple -->
 	<!-- defaultModelType: flat hierarchical conditional -->
-	<context id="MySqlTables" targetRuntime="MyBatis3" defaultModelType="flat">
+	<context id="MySqlTables" targetRuntime="Jpa2" defaultModelType="flat">
+		
+		<property name="createdDateName" value="createdDate"/>
+		<property name="updatedDateName" value="updatedDate"/>
 		
 		<property name="javaFileEncoding" value="UTF-8"/>
 		<property name="beginningDelimiter" value="`"/>
@@ -22,31 +26,17 @@
             <property name="replaceString" value="Criteria" />  
         </plugin>
         
-        <!-- Redis Cache -->
-        <!-- <plugin type="org.mybatis.generator.plugins.CachePlugin"> 
-        	 <property name="cache_type" value="com.xsili.cache.mybatis.redis.RedisCache" /> 
-        </plugin> -->
-		
-		<!-- 生成分页插件 -->
-		<plugin type="org.mybatis.generator.xsili.plugins.PaginationPlugin">
-			<property name="queryParam" value="org.mybatis.generator.xsili.outputdependence.page.QueryParam" />
-		</plugin>
-		
-		<!-- Mapper注解 -->
-		<plugin type="org.mybatis.generator.plugins.MapperAnnotationPlugin">
-			<property name="annotationClass" value="org.springframework.stereotype.Repository" />
-			<property name="annotationName" value="@Repository" />
+		<!-- model注解 -->
+		<plugin type="org.mybatis.generator.xsili.plugins.Jpa2ModelAnnotationPlugin">
 		</plugin>
         
         <!-- service代码生成 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.ServicePlugin">
 			<property name="targetProject" value="src/main/java" />
-			<property name="targetPackage" value="com.xsili.module.service" />
-			<property name="targetPackageImpl" value="com.xsili.module.service.impl" />
-			<!-- 分页工具类 -->
-			<property name="pagerUtil" value="org.mybatis.generator.xsili.outputdependence.page.PagerUtil" />
+			<property name="targetPackage" value="com.xsili.business.service" />
+			<property name="targetPackageImpl" value="com.xsili.business.service.impl" />
 			<!-- 分页类型 -->
-			<property name="pager" value="org.mybatis.generator.xsili.outputdependence.page.Pager" />
+			<property name="page" value="org.mybatis.generator.xsili.outputdependence.page.SimplePage" />
 			<!-- 选填, 业务异常 -->
 			<property name="businessException" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException" />
 			<!-- 选填, id生成器. 主键是字符类型且idGenerator!=null, 则调用 idGenerator#generateId() 设置主键值 -->
@@ -56,8 +46,8 @@
         <!-- controller代码生成 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.SpringMvcControllerPlugin">
 			<property name="targetProject" value="src/main/java" />
-			<property name="targetPackage" value="com.xsili.module.controller" />
-			<property name="targetPackageService" value="com.xsili.module.service" />
+			<property name="targetPackage" value="com.xsili.business.controller" />
+			<property name="targetPackageService" value="com.xsili.business.service" />
 			<!-- 接口风格, restful or 传统CRUD -->
 			<property name="enableRestful" value="true" />
 			<!-- 开启Swagger文档注释 -->
@@ -65,7 +55,7 @@
 			<!-- 基类 -->
 			<property name="abstractController" value="org.mybatis.generator.xsili.outputdependence.AbstractController" />
 			<!-- 分页类型 -->
-			<property name="pager" value="org.mybatis.generator.xsili.outputdependence.page.Pager" />
+			<property name="page" value="org.mybatis.generator.xsili.outputdependence.page.SimplePage" />
 			<!-- 方法返回值类型 -->
 			<property name="resultModel" value="org.mybatis.generator.xsili.outputdependence.model.Result" />
 			<!-- 选填, 参数校验工具类 -->
@@ -73,9 +63,9 @@
 		</plugin>
 		
 		<!-- mapper测试代码生成  targetPackage与对应的实体生成保持一致 -->
-		<plugin type="org.mybatis.generator.xsili.plugins.MapperJunitPlugin">
+		<plugin type="org.mybatis.generator.xsili.plugins.Jpa2RepositoryJunitPlugin">
 			<property name="targetProject" value="src/test/java" />
-			<property name="targetPackage" value="com.xsili.test.module.mapper" />
+			<property name="targetPackage" value="com.xsili.test.business.repository" />
 			<!-- 测试基类 -->
 			<property name="superTestCase" value="org.mybatis.generator.xsili.outputdependence.test.BaseTest" />
 		</plugin>
@@ -106,18 +96,13 @@
 		</javaTypeResolver>
 		
 		<!-- 实体类对象 -->
-		<javaModelGenerator targetPackage="com.xsili.module.entity" targetProject="src/main/java">
+		<javaModelGenerator targetPackage="com.xsili.business.model" targetProject="src/main/java">
 			<property name="enableSubPackages" value="true" />
 			<property name="trimStrings" value="true" />
 		</javaModelGenerator>
 		
-		<!-- mybatis mapper.xml -->
-		<sqlMapGenerator targetPackage="mybatis/mapper" targetProject="src/main/resources">
-			<property name="enableSubPackages" value="true" />
-		</sqlMapGenerator>
-		
-		<!-- mybatis mapper.java -->
-		<javaClientGenerator type="XMLMAPPER" targetPackage="com.xsili.module.mapper" targetProject="src/main/java">
+		<!-- jpa2 Repository.java, type: REPOSITORY  -->
+		<javaClientGenerator type="REPOSITORY" targetPackage="com.xsili.business.repository" targetProject="src/main/java">
 			<property name="enableSubPackages" value="true" />
 		</javaClientGenerator>
 		

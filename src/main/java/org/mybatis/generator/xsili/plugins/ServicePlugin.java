@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
+import org.mybatis.generator.api.IntrospectedTable.TargetRuntime;
 import org.mybatis.generator.api.PluginAdapter;
 import org.mybatis.generator.api.dom.java.Field;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
@@ -16,6 +17,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -32,8 +34,7 @@ public class ServicePlugin extends PluginAdapter {
     private String project;
     private String modelPackage;
 
-    private FullyQualifiedJavaType pagerType;
-    private FullyQualifiedJavaType pagerUtilType;
+    private FullyQualifiedJavaType pageType;
     private FullyQualifiedJavaType idGeneratorType;
 
     private FullyQualifiedJavaType slf4jLogger;
@@ -42,11 +43,11 @@ public class ServicePlugin extends PluginAdapter {
     private FullyQualifiedJavaType serviceInterfaceType;
     private FullyQualifiedJavaType serviceType;
     private FullyQualifiedJavaType mapperType;
-    private FullyQualifiedJavaType modelType;
+//    private FullyQualifiedJavaType baseModelType;
     /**
-     * 如果有WithBlob, 则modelWithBLOBsType赋值为BlobModel, 否则赋值为BaseModel
+     * 如果有WithBlob, 则modelType赋值为BlobModel, 否则赋值为BaseModel
      */
-    private FullyQualifiedJavaType modelWithBLOBsType;
+    private FullyQualifiedJavaType allFieldModelType;
     private FullyQualifiedJavaType modelCriteriaType;
     private FullyQualifiedJavaType modelSubCriteriaType;
     private FullyQualifiedJavaType BusinessExceptionType;
@@ -64,18 +65,11 @@ public class ServicePlugin extends PluginAdapter {
 
     @Override
     public boolean validate(List<String> warnings) {
-        String pager = properties.getProperty("pager");
-        if (StringUtils.isBlank(pager)) {
-            throw new RuntimeException("property pager is null");
+        String page = properties.getProperty("page");
+        if (StringUtils.isBlank(page)) {
+            throw new RuntimeException("property page is null");
         } else {
-            pagerType = new FullyQualifiedJavaType(pager);
-        }
-
-        String pagerUtil = properties.getProperty("pagerUtil");
-        if (StringUtils.isBlank(pagerUtil)) {
-            throw new RuntimeException("property pagerUtil is null");
-        } else {
-            pagerUtilType = new FullyQualifiedJavaType(pagerUtil);
+            pageType = new FullyQualifiedJavaType(page);
         }
 
         String idGenerator = properties.getProperty("idGenerator");
@@ -108,10 +102,8 @@ public class ServicePlugin extends PluginAdapter {
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");
 
-        modelWithBLOBsType = modelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
-        if (introspectedTable.getRules().generateRecordWithBLOBsClass()) {
-            modelWithBLOBsType = new FullyQualifiedJavaType(introspectedTable.getRecordWithBLOBsType());
-        }
+//        baseModelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
+        allFieldModelType = introspectedTable.getRules().calculateAllFieldsClass();
         mapperType = new FullyQualifiedJavaType(introspectedTable.getMyBatis3JavaMapperType());
         serviceInterfaceType = new FullyQualifiedJavaType(servicePackage + "." + tableName + "Service");
         serviceType = new FullyQualifiedJavaType(serviceImplPackage + "." + tableName + "ServiceImpl");
@@ -120,205 +112,198 @@ public class ServicePlugin extends PluginAdapter {
 
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
         Interface serviceInterface = new Interface(serviceInterfaceType);
-        TopLevelClass topLevelClass = new TopLevelClass(serviceType);
+        TopLevelClass serviceImplClass = new TopLevelClass(serviceType);
         
         // 导入必要的类
-        addImport(serviceInterface, topLevelClass, introspectedTable);
-        // 接口
-        generateService(serviceInterface, topLevelClass, introspectedTable, files);
-        // 实现类
-        generateServiceImpl(topLevelClass, introspectedTable, files);
+        addImport(serviceInterface, serviceImplClass, introspectedTable);
+        // 接口 & 实现类
+        generateFile(serviceInterface, serviceImplClass, introspectedTable, files);
 
         return files;
     }
 
     /**
-     * 添加接口
+     * 生成Service Interface & Impl
      * 
-     * @param files
-     */
-    private void generateService(Interface serviceInterface,
-                            TopLevelClass topLevelClass,
-                            IntrospectedTable introspectedTable,
-                            List<GeneratedJavaFile> files) {
-        serviceInterface.setVisibility(JavaVisibility.PUBLIC);
-
-        Method addMethod = createEntity(topLevelClass, introspectedTable);
-        addMethod.removeBodyLines();
-        serviceInterface.addMethod(addMethod);
-
-        Method updateMethod = updateEntity(topLevelClass, introspectedTable, false);
-        updateMethod.removeBodyLines();
-        serviceInterface.addMethod(updateMethod);
-        
-        Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, true);
-        updateSelectiveMethod.removeBodyLines();
-        serviceInterface.addMethod(updateSelectiveMethod);
-
-        Method deleteMethod = deleteEntity(introspectedTable);
-        deleteMethod.removeBodyLines();
-        serviceInterface.addMethod(deleteMethod);
-
-        Method getMethod = getEntity(introspectedTable);
-        getMethod.removeBodyLines();
-        serviceInterface.addMethod(getMethod);
-
-        Method listMethod = listEntitys(topLevelClass, introspectedTable);
-        listMethod.removeBodyLines();
-        serviceInterface.addMethod(listMethod);
-
-        GeneratedJavaFile file = new GeneratedJavaFile(serviceInterface, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
-        files.add(file);
-    }
-
-    /**
-     * 生成ServiceImpl
-     * 
-     * @param topLevelClass
+     * @param serviceInterface
+     * @param serviceImplClass
      * @param introspectedTable
      * @param files
      */
-    private void generateServiceImpl(TopLevelClass topLevelClass,
-                                IntrospectedTable introspectedTable,
-                                List<GeneratedJavaFile> files) {
-        topLevelClass.setVisibility(JavaVisibility.PUBLIC);
-        // 设置实现的接口
-        topLevelClass.addSuperInterface(serviceInterfaceType);
-        // 添加注解
-        topLevelClass.addAnnotation("@Service(\""
-                                    + PluginUtils.lowerCaseFirstLetter(serviceInterfaceType.getShortName()) + "\")");
-        topLevelClass.addImportedType(annotationService);
-
-        // 日志
-        addLoggerField(topLevelClass);
-        // 添加 Mapper引用
-        addMapperField(topLevelClass);
-
-        // 添加基础方法
-
-        Method addMethod = createEntity(topLevelClass, introspectedTable);
-        addMethod.addAnnotation("@Override");
-        topLevelClass.addMethod(addMethod);
-
-        Method updateMethod = updateEntity(topLevelClass, introspectedTable, false);
-        updateMethod.addAnnotation("@Override");
-        topLevelClass.addMethod(updateMethod);
+    private void generateFile(Interface serviceInterface,
+                                     TopLevelClass serviceImplClass,
+                                     IntrospectedTable introspectedTable,
+                                     List<GeneratedJavaFile> files) {
+        // service接口
+        serviceInterface.setVisibility(JavaVisibility.PUBLIC);
         
-        Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, true);
-        updateSelectiveMethod.addAnnotation("@Override");
-        topLevelClass.addMethod(updateSelectiveMethod);
+        // service实现类
+        serviceImplClass.setVisibility(JavaVisibility.PUBLIC);
+        // 设置实现的接口
+        serviceImplClass.addSuperInterface(serviceInterfaceType);
+        // 添加注解
+        serviceImplClass.addAnnotation("@Service(\"" + PluginUtils.lowerCaseFirstLetter(serviceInterfaceType.getShortName()) + "\")");
+        serviceImplClass.addImportedType(annotationService);
+        // 日志
+        addLoggerField(serviceImplClass);
+        // 添加 Mapper引用
+        addMapperField(serviceImplClass);
 
+        // 方法
+        // add
+        Method addMethod = createEntity(serviceImplClass, introspectedTable);
+        addMethod.removeBodyLines();
+        serviceInterface.addMethod(addMethod);
+        Method addMethodImpl = createEntity(serviceImplClass, introspectedTable);
+        addMethodImpl.addAnnotation("@Override");
+        serviceImplClass.addMethod(addMethodImpl);
+
+        // update
+        Method updateMethod = updateEntity(serviceImplClass, introspectedTable, false);
+        updateMethod.removeBodyLines();
+        serviceInterface.addMethod(updateMethod);
+        Method updateMethodImpl = updateEntity(serviceImplClass, introspectedTable, false);
+        updateMethodImpl.addAnnotation("@Override");
+        serviceImplClass.addMethod(updateMethodImpl);
+        
+        // updateSelective
+        if(introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
+            Method updateSelectiveMethod = updateEntity(serviceImplClass, introspectedTable, true);
+            updateSelectiveMethod.removeBodyLines();
+            serviceInterface.addMethod(updateSelectiveMethod);
+            Method updateSelectiveMethodImpl = updateEntity(serviceImplClass, introspectedTable, true);
+            updateSelectiveMethodImpl.addAnnotation("@Override");
+            serviceImplClass.addMethod(updateSelectiveMethodImpl);
+        }
+
+        // delete
         Method deleteMethod = deleteEntity(introspectedTable);
-        deleteMethod.addAnnotation("@Override");
-        topLevelClass.addMethod(deleteMethod);
+        deleteMethod.removeBodyLines();
+        serviceInterface.addMethod(deleteMethod);
+        Method deleteMethodImpl = deleteEntity(introspectedTable);
+        deleteMethodImpl.addAnnotation("@Override");
+        serviceImplClass.addMethod(deleteMethodImpl);
 
+        // get
         Method getMethod = getEntity(introspectedTable);
-        getMethod.addAnnotation("@Override");
-        topLevelClass.addMethod(getMethod);
+        getMethod.removeBodyLines();
+        serviceInterface.addMethod(getMethod);
+        Method getMethodImpl = getEntity(introspectedTable);
+        getMethodImpl.addAnnotation("@Override");
+        serviceImplClass.addMethod(getMethodImpl);
 
-        Method listMethod = listEntitys(topLevelClass, introspectedTable);
-        listMethod.addAnnotation("@Override");
-        topLevelClass.addMethod(listMethod);
+        // list
+        Method listMethod = listEntity(serviceImplClass, introspectedTable);
+        listMethod.removeBodyLines();
+        serviceInterface.addMethod(listMethod);
+        Method listMethodImpl = listEntity(serviceImplClass, introspectedTable);
+        listMethodImpl.addAnnotation("@Override");
+        serviceImplClass.addMethod(listMethodImpl);
 
         // 生成文件
-        GeneratedJavaFile file = new GeneratedJavaFile(topLevelClass, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
-        files.add(file);
+
+        GeneratedJavaFile interfaceFile = new GeneratedJavaFile(serviceInterface, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
+        files.add(interfaceFile);
+        
+        GeneratedJavaFile implFile = new GeneratedJavaFile(serviceImplClass, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
+        files.add(implFile);
     }
 
     /**
      * 导入需要的类
      */
     private void addImport(Interface serviceInterface,
-                           TopLevelClass topLevelClass,
+                           TopLevelClass serviceImplClass,
                            IntrospectedTable introspectedTable) {
         // 导入key类型
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
         for (Parameter keyParameter : keyParameterList) {
             if (keyParameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
                 serviceInterface.addImportedType(keyParameter.getType());
-                topLevelClass.addImportedType(keyParameter.getType());
+                serviceImplClass.addImportedType(keyParameter.getType());
             }
         }
 
         // 接口
-        serviceInterface.addImportedType(modelType);
-        serviceInterface.addImportedType(modelWithBLOBsType);
-        serviceInterface.addImportedType(pagerType);
+//        serviceInterface.addImportedType(baseModelType);
+        serviceInterface.addImportedType(allFieldModelType);
+        serviceInterface.addImportedType(pageType);
 
         // 实现类
-        topLevelClass.addImportedType(slf4jLogger);
-        topLevelClass.addImportedType(slf4jLoggerFactory);
+        serviceImplClass.addImportedType(slf4jLogger);
+        serviceImplClass.addImportedType(slf4jLoggerFactory);
 
-        topLevelClass.addImportedType(serviceInterfaceType);
-        topLevelClass.addImportedType(mapperType);
-        topLevelClass.addImportedType(modelType);
-        topLevelClass.addImportedType(modelWithBLOBsType);
-        topLevelClass.addImportedType(modelCriteriaType);
-        topLevelClass.addImportedType(modelSubCriteriaType);
-        topLevelClass.addImportedType(BusinessExceptionType);
+        serviceImplClass.addImportedType(serviceInterfaceType);
+        serviceImplClass.addImportedType(mapperType);
+//        serviceImplClass.addImportedType(baseModelType);
+        serviceImplClass.addImportedType(allFieldModelType);
 
-        topLevelClass.addImportedType(listType);
-        topLevelClass.addImportedType(pagerType);
-        topLevelClass.addImportedType(pagerUtilType);
-
-        topLevelClass.addImportedType(annotationService);
-        topLevelClass.addImportedType(annotationResource);
+        serviceImplClass.addImportedType(annotationService);
+        serviceImplClass.addImportedType(annotationResource);
     }
 
     /**
      * add
      * 
-     * @param topLevelClass
+     * @param serviceImplClass
      * @param introspectedTable
      * @return
      */
-    private Method createEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
-        String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
+    private Method createEntity(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable) {
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setName("create");
-        method.setReturnType(modelWithBLOBsType);
-        method.addParameter(new Parameter(modelWithBLOBsType, modelParamName));
+        method.setReturnType(allFieldModelType);
+        method.addParameter(new Parameter(allFieldModelType, modelParamName));
 
-        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
+        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
-            boolean isPrimaryKey = primaryKeyColumns.contains(introspectedColumn);
-
-            if (isPrimaryKey) {
+            if (PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn)) {
                 // if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
                 // }
                 // 字符类型主键
                 if (introspectedColumn.isStringColumn() && idGeneratorType != null) {
-                    topLevelClass.addImportedType(idGeneratorType);
+                    serviceImplClass.addImportedType(idGeneratorType);
                     String params = idGeneratorType.getShortName() + ".generateId()";
                     method.addBodyLine(modelParamName + PluginUtils.generateSetterCall(introspectedColumn, params));
                 }
-            } else if ("createTime".equals(introspectedColumn.getJavaProperty())) {
-                topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".setCreateTime(new Date());");
-            } else if ("updateTime".equals(introspectedColumn.getJavaProperty())) {
-                topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".setUpdateTime(new Date());");
+            } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {
+                serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdDateName) + "(new Date());");
+            } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
+                serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
             }
         }
-        method.addBodyLine("if(this." + getMapper() + "insertSelective(" + modelParamName + ") == 0) {");
-        method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"插入数据库失败\");");
-        method.addBodyLine("}");
-        method.addBodyLine("return " + modelParamName + ";");
+        
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            method.addBodyLine("return this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ");");
+        } else {
+            serviceImplClass.addImportedType(BusinessExceptionType);
+            
+            method.addBodyLine("if(this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ") == 0) {");
+            method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"插入数据库失败\");");
+            method.addBodyLine("}");
+            method.addBodyLine("return " + modelParamName + ";");
+        }
+        
         return method;
     }
 
     /**
      * update
      * 
-     * @param topLevelClass
+     * @param serviceImplClass
      * @param introspectedTable
      * @return
      */
-    private Method updateEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, boolean isSelective) {
-        String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
+    private Method updateEntity(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable, boolean isSelective) {
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
@@ -327,34 +312,39 @@ public class ServicePlugin extends PluginAdapter {
         } else {
             method.setName("update");
         }
-        method.setReturnType(modelWithBLOBsType);
-        method.addParameter(new Parameter(modelWithBLOBsType, modelParamName));
+        method.setReturnType(allFieldModelType);
+        method.addParameter(new Parameter(allFieldModelType, modelParamName));
 
+        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             // mysql date introspectedColumn.isJDBCDateColumn()
             // mysql time introspectedColumn.isJDBCTimeColumn()
             // mysql dateTime ??
 
-            if ("updateTime".equals(introspectedColumn.getJavaProperty())) {
-                topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".setUpdateTime(new Date());");
+            if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
+                serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
             }
         }
+        
+        String mapperMethodName = "";
         if(isSelective) {
-            method.addBodyLine("if(this." + getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ") == 0) {");
+            mapperMethodName = getMapperMethodName(introspectedTable, "updateSelective");
         } else {
-            String mapperUpdateMethod = "";
-            if (PluginUtils.hasBLOBColumns(introspectedTable)) {
-                mapperUpdateMethod = "updateByPrimaryKeyWithBLOBs";
-            } else {
-                mapperUpdateMethod = "updateByPrimaryKey";
-            }
-            method.addBodyLine("if(this." + getMapper() + mapperUpdateMethod + "(" + modelParamName + ") == 0) {");
+            mapperMethodName = getMapperMethodName(introspectedTable, "update");
         }
-        method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"记录不存在\");");
-        method.addBodyLine("}");
-        method.addBodyLine("return " + modelParamName + ";");
+        
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            method.addBodyLine("return this." + getMapper() + mapperMethodName + "(" + modelParamName + ");");
+        } else {
+            serviceImplClass.addImportedType(BusinessExceptionType);
+            
+            method.addBodyLine("if(this." + getMapper() + mapperMethodName + "(" + modelParamName + ") == 0) {");
+            method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"记录不存在\");");
+            method.addBodyLine("}");
+            method.addBodyLine("return " + modelParamName + ";");
+        }
 
         return method;
     }
@@ -369,15 +359,22 @@ public class ServicePlugin extends PluginAdapter {
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setName("delete");
-        method.setReturnType(FullyQualifiedJavaType.getBooleanPrimitiveInstance());
+        // method.setReturnType(FullyQualifiedJavaType.getBooleanPrimitiveInstance());
 
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
         for (Parameter keyParameter : keyParameterList) {
             method.addParameter(keyParameter);
         }
         String params = PluginUtils.getCallParameters(keyParameterList);
-
-        method.addBodyLine("return this." + getMapper() + "deleteByPrimaryKey(" + params + ") == 1;");
+        
+        // 填充key
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            String keyParams = prepareCallByKey(introspectedTable, method, method.getParameters());
+            if(StringUtils.isNotBlank(keyParams)) {
+                params = keyParams;
+            }
+        }
+        method.addBodyLine("this." + getMapper() + getMapperMethodName(introspectedTable, "delete") + "(" + params + ");");
         return method;
     }
 
@@ -391,7 +388,7 @@ public class ServicePlugin extends PluginAdapter {
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setName("get");
-        method.setReturnType(modelWithBLOBsType);
+        method.setReturnType(allFieldModelType);
 
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
         for (Parameter keyParameter : keyParameterList) {
@@ -399,42 +396,107 @@ public class ServicePlugin extends PluginAdapter {
         }
         String params = PluginUtils.getCallParameters(keyParameterList);
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("return this.").append(getMapper());
-        sb.append("selectByPrimaryKey").append("(").append(params).append(");");
-        method.addBodyLine(sb.toString());
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            String keyParams = prepareCallByKey(introspectedTable, method, method.getParameters());
+            if(StringUtils.isNotBlank(keyParams)) {
+                params = keyParams;
+            }
+            method.addBodyLine("return this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ").orElse(null);");
+        } else {
+            method.addBodyLine("return this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
+        }
         return method;
     }
 
     /**
      * list
      * 
-     * @param topLevelClass
+     * @param serviceImplClass
      * @param introspectedTable
      * @return
      */
-    private Method listEntitys(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+    private Method listEntity(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable) {
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            return listEntityJpa2(serviceImplClass, introspectedTable);
+        } else {
+            return listEntityMybatis(serviceImplClass, introspectedTable);
+        }
+    }
+    
+    /**
+     * list mybatis
+     * 
+     * @param serviceImplClass
+     * @param introspectedTable
+     * @return
+     */
+    private Method listEntityMybatis(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable) {
         Method method = new Method();
         method.setName("list");
-        method.setReturnType(new FullyQualifiedJavaType(pagerType.getShortName() + "<" + modelType.getShortName()
+        method.setReturnType(new FullyQualifiedJavaType(pageType.getShortName() + "<" + allFieldModelType.getShortName()
                                                         + ">"));
-        method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "page"));
-        method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "limit"));
+        method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "pageNum"));
+        method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "pageSize"));
         method.setVisibility(JavaVisibility.PUBLIC);
 
+        // 导入类
+        serviceImplClass.addImportedType(modelCriteriaType);
+        serviceImplClass.addImportedType(modelSubCriteriaType);
+        serviceImplClass.addImportedType(listType);
+        serviceImplClass.addImportedType(pageType);
+        
         method.addBodyLine(modelCriteriaType.getShortName() + " criteria = new " + modelCriteriaType.getShortName()
                            + "();");
-        method.addBodyLine("criteria.setPage(page);");
-        method.addBodyLine("criteria.setLimit(limit);");
+        method.addBodyLine("criteria.setPage(pageNum);");
+        method.addBodyLine("criteria.setLimit(pageSize);");
         method.addBodyLine("@SuppressWarnings(\"unused\")");
         method.addBodyLine(modelSubCriteriaType.getShortName() + " cri = criteria.createCriteria();");
 
-        method.addBodyLine("List<" + modelType.getShortName() + "> list = " + getMapper()
+        method.addBodyLine("List<" + allFieldModelType.getShortName() + "> list = " + getMapper()
                            + "selectByExample(criteria);");
-        method.addBodyLine("return " + pagerUtilType.getShortName() + ".getPager(list, criteria);");
+        method.addBodyLine("return " + pageType.getShortName() + ".getPage(list, criteria);");
         return method;
     }
 
+
+    /**
+     * list jpa2
+     * 
+     * @param serviceImplClass
+     * @param introspectedTable
+     * @return
+     */
+    private Method listEntityJpa2(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable) {
+        Method method = new Method();
+        method.setName("list");
+        method.setReturnType(new FullyQualifiedJavaType(pageType.getShortName() + "<" + allFieldModelType.getShortName()
+                                                        + ">"));
+        method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "pageNum"));
+        method.addParameter(new Parameter(new FullyQualifiedJavaType("int"), "pageSize"));
+        method.setVisibility(JavaVisibility.PUBLIC);
+
+        // 导入类
+        serviceImplClass.addImportedType(pageType);
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("com.querydsl.core.types.Predicate"));
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Page"));
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.PageRequest"));
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Pageable"));
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Sort"));
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Sort.Direction"));
+        
+        method.addBodyLine("// 通过ExpressionUtils构建Predicate查询条件");
+        method.addBodyLine("Predicate predicate = null;");
+        method.addBodyLine("");
+        method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, new Sort(Direction.DESC, \"id\"));");
+
+        method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = " + getMapper()
+                           + "findAll(predicate, pageable);");
+        method.addBodyLine("return " + pageType.getShortName() + ".getPage(page);");
+        
+        return method;
+    }
+
+    
     /**
      * count
      * 
@@ -458,7 +520,7 @@ public class ServicePlugin extends PluginAdapter {
     /**
      * 添加 LOGGER 字段
      */
-    private void addLoggerField(TopLevelClass topLevelClass) {
+    private void addLoggerField(TopLevelClass serviceImplClass) {
         Field field = new Field();
         field.addAnnotation("@SuppressWarnings(\"unused\")");
         field.setVisibility(JavaVisibility.PRIVATE);
@@ -467,26 +529,84 @@ public class ServicePlugin extends PluginAdapter {
         field.setType(new FullyQualifiedJavaType("Logger"));
         field.setName("LOGGER");
         // 设置值
-        field.setInitializationString("LoggerFactory.getLogger(" + topLevelClass.getType().getShortName() + ".class)");
-        topLevelClass.addField(field);
+        field.setInitializationString("LoggerFactory.getLogger(" + serviceImplClass.getType().getShortName() + ".class)");
+        serviceImplClass.addField(field);
     }
 
     /**
      * 添加 Mapper依赖字段
      */
-    private void addMapperField(TopLevelClass topLevelClass) {
-        topLevelClass.addImportedType(mapperType);
+    private void addMapperField(TopLevelClass serviceImplClass) {
+        serviceImplClass.addImportedType(mapperType);
 
         Field field = new Field();
         field.setVisibility(JavaVisibility.PRIVATE);
         field.setType(mapperType);
         field.setName(PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()));
         field.addAnnotation("@Resource");
-        topLevelClass.addField(field);
+        serviceImplClass.addField(field);
     }
 
     private String getMapper() {
         return PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()) + ".";
     }
+    
+    /**
+     * 
+     * @param introspectedTable
+     * @param type create update updateSelective delete get
+     * @return
+     */
+    private String getMapperMethodName(IntrospectedTable introspectedTable, String type) {
+        if (type.equals("create")) {
+            return introspectedTable.getTargetRuntime() == TargetRuntime.JPA2 ? "save" : "insertSelective";
+        } else if (type.equals("update")) {
+            if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+                return "saveAndFlush";
+            } else {
+                if (PluginUtils.hasBLOBColumns(introspectedTable)) {
+                    return "updateByPrimaryKeyWithBLOBs";
+                } else {
+                    return "updateByPrimaryKey";
+                }
+            }
+        } else if (type.equals("updateSelective")) {
+            if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+                // TODO jpa2 updateSelective
+                return "saveAndFlush";
+            } else {
+                return "updateByPrimaryKeySelective";
+            }
+        } else if (type.equals("delete")) {
+            return introspectedTable.getTargetRuntime() == TargetRuntime.JPA2 ? "deleteById" : "deleteByPrimaryKey";
+        } else if (type.equals("get")) {
+            return introspectedTable.getTargetRuntime() == TargetRuntime.JPA2 ? "findById" : "selectByPrimaryKey";
+        } else {
+            throw new IllegalArgumentException("参数type错误, type: " + type);
+        }
+    }
 
+    /**
+     * 如果没有生成主键类, 并且是复合主键, 则以allFieldModel填充复合主键, 并返回调用参数<br>
+     * 和 {@link Jpa2RepositoryJunitPlugin#prepareCallByKey} 重复
+     * @param introspectedTable
+     * @param caller
+     * @return
+     */
+    private String prepareCallByKey(IntrospectedTable introspectedTable, Method caller, List<Parameter> keyParameters) {
+        if (!introspectedTable.getRules().generatePrimaryKeyClass()) {
+            List<IntrospectedColumn> columns = introspectedTable.getPrimaryKeyColumns();
+            if (columns.size() > 1) {
+                String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+                // 填充key参数
+                caller.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new "
+                                   + allFieldModelType.getShortName() + "();");
+                PluginUtils.generateModelSetterBodyLine(modelParamName, caller, keyParameters);
+                // call param
+                return modelParamName;
+            }
+        }
+        return null;
+    }
+    
 }

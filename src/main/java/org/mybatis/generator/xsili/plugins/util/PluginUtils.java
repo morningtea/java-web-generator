@@ -9,11 +9,18 @@ import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
+import org.mybatis.generator.config.Context;
 
 public class PluginUtils {
 
-    public static final String PRIMARY_KEY_PARAMETER_NAME = "key";
+    // 如果生成主键类, 该常量值会被controller引用, 出现在方法参数上
+    public static final String PRIMARY_KEY_PARAMETER_NAME = "primaryKey";
 
+    public static String getPropertyNotNull(Context context, String key) {
+        String value = context.getProperty(key);
+        return value == null ? "" : value;
+    }
+    
     /**
      * 
      * @param introspectedTable
@@ -53,31 +60,36 @@ public class PluginUtils {
      * @param modelParamName
      * @param method
      */
-    public static void generateModelSetterBodyLine(String modelParamName, Method method) {
-        for (Parameter parameter : method.getParameters()) {
+    public static void generateModelSetterBodyLine(String modelParamName, Method method, List<Parameter> parameters) {
+        for (Parameter parameter : parameters) {
             method.addBodyLine(modelParamName + ".set" + upperCaseFirstLetter(parameter.getName()) + "("
                                + parameter.getName() + ");");
         }
     }
     
     /**
-     * 如果有单独创建key, 则返回key类型
+     * 如果有单独创建key, 则返回key类型<br>
+     * 否则,如果是单主键, 则返回该列对应的主键类型<br>
+     * 否则,返回 all field model (Rules#calculateAllFieldsClass())
      * 
-     * @return can be null
+     * @return not null
      */
-    public static FullyQualifiedJavaType getKeyClass(IntrospectedTable introspectedTable) {
-        // 导入key类型
-        List<Parameter> keyParameterList = getPrimaryKeyParameters(introspectedTable);
-        for (Parameter keyParameter : keyParameterList) {
-            if (keyParameter.getName().equals(PluginUtils.PRIMARY_KEY_PARAMETER_NAME)) {
-                return keyParameter.getType();
-            }
+    public static FullyQualifiedJavaType calculateKeyType(IntrospectedTable introspectedTable) {
+        if(introspectedTable.getRules().generatePrimaryKeyClass()) {
+            return new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
         }
-        return null;
+
+        List<IntrospectedColumn> columns = introspectedTable.getPrimaryKeyColumns();
+        if(columns.size() == 1) {
+            return columns.get(0).getFullyQualifiedJavaType();
+        } else {
+            return introspectedTable.getRules().calculateAllFieldsClass();
+        }
     }
 
     /**
-     * 获取主键参数
+     * 获取主键参数<br>
+     * 生成的主键类, 或者列主键
      * 
      * @param introspectedTable
      * @return
@@ -94,6 +106,18 @@ public class PluginUtils {
             }
         }
         return list;
+    }
+    
+    /**
+     * 通过equals进行判断
+     * @param introspectedTable
+     * @param introspectedColumn
+     * @return
+     */
+    public static boolean isPrimaryKey(IntrospectedTable introspectedTable, IntrospectedColumn introspectedColumn) {
+        // introspectedColumn.isIdentity() 并不是主键的意思
+        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        return primaryKeyColumns.contains(introspectedColumn);
     }
 
     /**
@@ -114,6 +138,15 @@ public class PluginUtils {
         }
         paramsBuf.setLength(paramsBuf.lastIndexOf(","));
         return paramsBuf.toString();
+    }
+
+    /**
+     * java.lang.Object --> object
+     * @param javaType
+     * @return
+     */
+    public static String getTypeParamName(FullyQualifiedJavaType javaType) {
+        return PluginUtils.lowerCaseFirstLetter(javaType.getShortName());
     }
 
     /**
@@ -159,15 +192,6 @@ public class PluginUtils {
         StringBuilder sb = new StringBuilder(str);
         sb.setCharAt(0, Character.toUpperCase(sb.charAt(0)));
         return sb.toString();
-    }
-
-    /**
-     * java.lang.Object --> object
-     * @param javaType
-     * @return
-     */
-    public static String getTypeParamName(FullyQualifiedJavaType javaType) {
-        return PluginUtils.lowerCaseFirstLetter(javaType.getShortName());
     }
 
 }

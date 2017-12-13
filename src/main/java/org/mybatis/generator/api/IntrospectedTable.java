@@ -51,7 +51,11 @@ public abstract class IntrospectedTable {
 
     public enum TargetRuntime {
         IBATIS2, 
-        MYBATIS3
+        MYBATIS3,
+        /**
+         * @modifier yepeng, add at 20171207
+         */
+        JPA2
     }
 
     protected enum InternalAttribute {
@@ -832,7 +836,12 @@ public abstract class IntrospectedTable {
                 sb.append('.');
             }
             sb.append(fullyQualifiedTable.getDomainObjectName());
-            sb.append("Mapper"); //$NON-NLS-1$
+            // @modifier yepeng, add at 20171211
+            if(targetRuntime == TargetRuntime.JPA2) {
+                sb.append("Repository"); //$NON-NLS-1$
+            } else {
+                sb.append("Mapper"); //$NON-NLS-1$
+            }
         }
         setMyBatis3JavaMapperType(sb.toString());
 

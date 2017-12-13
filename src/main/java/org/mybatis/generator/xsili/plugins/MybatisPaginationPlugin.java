@@ -17,7 +17,7 @@ import org.mybatis.generator.api.dom.xml.XmlElement;
  * @author 叶鹏
  * @date 2017年8月25日
  */
-public class PaginationPlugin extends PluginAdapter {
+public class MybatisPaginationPlugin extends PluginAdapter {
 
     private FullyQualifiedJavaType queryParamType;
 
