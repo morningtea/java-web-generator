@@ -92,8 +92,8 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
         String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
         String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
 
-        // 主键
-        if (PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn)) {
+        
+        if (PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn)) {// 主键
             topLevelClass.addImportedType(ANNOTATION_CLASS_ID);
             field.addAnnotation("@" + ANNOTATION_CLASS_ID.getShortName());
 
@@ -108,10 +108,13 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
                 field.addAnnotation("@" + ANNOTATION_CLASS_GENERATED_VALUE.getShortName()
                                     + "(strategy = GenerationType.AUTO)");
             }
-        } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {
+        } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {// 创建日期
             topLevelClass.addImportedType(ANNOTATION_CLASS_COLUMN);
             field.addAnnotation("@" + ANNOTATION_CLASS_COLUMN.getShortName() + "(nullable = false, updatable = false)");
-        } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
+        } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {// 更新日期
+            topLevelClass.addImportedType(ANNOTATION_CLASS_COLUMN);
+            field.addAnnotation("@" + ANNOTATION_CLASS_COLUMN.getShortName() + "(nullable = false)");
+        } else if (!introspectedColumn.isNullable()) {// 非空
             topLevelClass.addImportedType(ANNOTATION_CLASS_COLUMN);
             field.addAnnotation("@" + ANNOTATION_CLASS_COLUMN.getShortName() + "(nullable = false)");
         }
