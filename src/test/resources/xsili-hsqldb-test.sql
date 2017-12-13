@@ -2,14 +2,18 @@
 -- pojo
 CREATE TABLE t_table1 (
   id integer NOT NULL,
-  title varchar(20),
+  title varchar(20) NOT NULL,
   description varchar(1000),
+  invitation_code varchar(20) unique,
+  is_delete bit(1),
   PRIMARY KEY (id)
 );
 comment on table t_table1 is '测试1';
 comment on column t_table1.id is '主键';
+comment on column t_table1.invitation_code is '邀请码';
 comment on column t_table1.title is '标题';
 comment on column t_table1.description is '描述';
+comment on column t_table1.is_delete is '删除状态';
 
 -- blob 自增主键
 CREATE TABLE t_blob_auto_id (
