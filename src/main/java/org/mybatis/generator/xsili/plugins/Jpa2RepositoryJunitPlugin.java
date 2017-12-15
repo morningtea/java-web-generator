@@ -324,9 +324,12 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
      * @return
      */
     private String prepareCallByKey(IntrospectedTable introspectedTable, Method caller, List<Parameter> keyParameters) {
+        // 检查是否包含主键
+        PluginUtils.checkPrimaryKey(introspectedTable);
+
         if (!introspectedTable.getRules().generatePrimaryKeyClass()) {
-            List<IntrospectedColumn> columns = introspectedTable.getPrimaryKeyColumns();
-            if (columns.size() > 1) {
+            List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+            if (primaryKeyColumns.size() > 1) {
                 String modelKeyParamName = PluginUtils.getTypeParamName(allFieldModelType) + "Key";
                 // 填充key参数
                 caller.addBodyLine(allFieldModelType.getShortName() + " " + modelKeyParamName + " = new "

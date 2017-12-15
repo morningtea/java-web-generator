@@ -115,6 +115,9 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
     @Override
     public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
+        // 检查是否包含主键
+        PluginUtils.checkPrimaryKey(introspectedTable);
+        
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");
 

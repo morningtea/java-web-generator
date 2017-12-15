@@ -25,6 +25,17 @@ public class PluginUtils {
     }
     
     /**
+     * 检查是否包含主键
+     * @param introspectedTable
+     * @throws RuntimeException if the table without primary key
+     */
+    public static void checkPrimaryKey(IntrospectedTable introspectedTable) {
+        if(introspectedTable.getPrimaryKeyColumns().isEmpty()) {
+            throw new RuntimeException(introspectedTable.getFullyQualifiedTable().getIntrospectedTableName().toLowerCase() + " without primary key");
+        }
+    }
+    
+    /**
      * 如果column有对应枚举类, 就构建枚举类型参数, 否则构建对应数据类型的参数
      * 
      * @param introspectedColumn
@@ -107,13 +118,16 @@ public class PluginUtils {
      * @return not null
      */
     public static FullyQualifiedJavaType calculateKeyType(IntrospectedTable introspectedTable) {
+        // 检查是否包含主键
+        checkPrimaryKey(introspectedTable);
+        
         if(introspectedTable.getRules().generatePrimaryKeyClass()) {
             return new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
         }
 
-        List<IntrospectedColumn> columns = introspectedTable.getPrimaryKeyColumns();
-        if(columns.size() == 1) {
-            return columns.get(0).getFullyQualifiedJavaType();
+        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        if(primaryKeyColumns.size() == 1) {
+            return primaryKeyColumns.get(0).getFullyQualifiedJavaType();
         } else {
             return introspectedTable.getRules().calculateAllFieldsClass();
         }
@@ -127,6 +141,9 @@ public class PluginUtils {
      * @return
      */
     public static List<Parameter> getPrimaryKeyParameters(IntrospectedTable introspectedTable) {
+        // 检查是否包含主键
+        checkPrimaryKey(introspectedTable);
+
         List<Parameter> list = new ArrayList<>();
         if (introspectedTable.getRules().generatePrimaryKeyClass()) {
             FullyQualifiedJavaType type = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
