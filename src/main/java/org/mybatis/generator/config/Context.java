@@ -36,6 +36,8 @@ import org.mybatis.generator.api.JavaTypeResolver;
 import org.mybatis.generator.api.Plugin;
 import org.mybatis.generator.api.ProgressCallback;
 import org.mybatis.generator.api.XmlFormatter;
+import org.mybatis.generator.api.dom.java.CompilationUnit;
+import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.api.dom.xml.Attribute;
 import org.mybatis.generator.api.dom.xml.XmlElement;
 import org.mybatis.generator.internal.JDBCConnectionFactory;
@@ -513,15 +515,25 @@ public class Context extends PropertyHolder {
 
                 introspectedTable.initialize();
                 introspectedTable.calculateGenerators(warnings, callback);
-                generatedJavaFiles.addAll(introspectedTable
-                        .getGeneratedJavaFiles());
-                generatedXmlFiles.addAll(introspectedTable
-                        .getGeneratedXmlFiles());
-
-                generatedJavaFiles.addAll(pluginAggregator
-                        .contextGenerateAdditionalJavaFiles(introspectedTable));
-                generatedXmlFiles.addAll(pluginAggregator
-                        .contextGenerateAdditionalXmlFiles(introspectedTable));
+                
+                List<GeneratedJavaFile> files = introspectedTable.getGeneratedJavaFiles();
+                generatedJavaFiles.addAll(files);
+                List<GeneratedXmlFile> xmls = introspectedTable.getGeneratedXmlFiles();
+                generatedXmlFiles.addAll(xmls);
+                
+                // @modifier yepeng, add at 20171215
+                List<TopLevelClass> modelClasses = new ArrayList<>();
+                for (GeneratedJavaFile generatedJavaFile : files) {
+                    CompilationUnit compilationUnit = generatedJavaFile.getCompilationUnit();
+                    if(compilationUnit instanceof TopLevelClass) {
+                        if(compilationUnit.getType().equals(introspectedTable.getRules().calculateAllFieldsClass())) {
+                            modelClasses.add((TopLevelClass) compilationUnit);
+                        }
+                    }
+                }
+                
+                generatedJavaFiles.addAll(pluginAggregator.contextGenerateAdditionalJavaFiles(introspectedTable, modelClasses));
+                generatedXmlFiles.addAll(pluginAggregator.contextGenerateAdditionalXmlFiles(introspectedTable));
             }
         }
 

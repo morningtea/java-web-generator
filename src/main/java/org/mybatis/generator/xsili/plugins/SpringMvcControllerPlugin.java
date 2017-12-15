@@ -114,7 +114,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
     }
 
     @Override
-    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
+    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");
 
@@ -130,7 +130,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         
         // 实现类
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
-        generateController(topLevelClass, introspectedTable, files);
+        generateController(topLevelClass, introspectedTable, modelClasses, files);
 
         return files;
     }
@@ -144,6 +144,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
      */
     private void generateController(TopLevelClass topLevelClass,
                                IntrospectedTable introspectedTable,
+                               List<TopLevelClass> modelClasses,
                                List<GeneratedJavaFile> files) {
         topLevelClass.setVisibility(JavaVisibility.PUBLIC);
         // 父类
@@ -159,13 +160,13 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
         // 添加基础方法
 
-        Method addMethod = createEntity(topLevelClass, introspectedTable);
+        Method addMethod = createEntity(topLevelClass, introspectedTable, modelClasses);
         topLevelClass.addMethod(addMethod);
 
-//        Method updateMethod = updateEntity(topLevelClass, introspectedTable, false);
+//        Method updateMethod = updateEntity(topLevelClass, introspectedTable, modelClasses, false);
 //        topLevelClass.addMethod(updateMethod);
 
-        Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, true);
+        Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, modelClasses, true);
         topLevelClass.addMethod(updateSelectiveMethod);
 
         Method deleteMethod = deleteEntity(introspectedTable);
@@ -225,9 +226,10 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
      * 
      * @param topLevelClass
      * @param introspectedTable
+     * @param modelClasses
      * @return
      */
-    private Method createEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+    private Method createEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
         Method method = new Method();
@@ -249,13 +251,18 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 添加方法参数
         String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
         String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        List<Field> fields = new ArrayList<>();
+        for (TopLevelClass modelClass : modelClasses) {
+            fields.addAll(modelClass.getFields());
+        }
+        
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
             // 排除主键, 创建时间, 更新时间
             if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdDateName.equals(javaProperty)
                 && !updatedDateName.equals(javaProperty)) {
-                Parameter parameter = new Parameter(introspectedColumn.getFullyQualifiedJavaType(), javaProperty);
+                Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
             }
@@ -282,7 +289,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
         return method;
     }
-
+    
     /**
      * update
      * 
@@ -290,7 +297,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method updateEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, boolean isSelective) {
+    private Method updateEntity(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses, boolean isSelective) {
         String methodName = isSelective ? "updateSelective" : "update";
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
@@ -320,14 +327,19 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         List<Parameter> keyParameters = addKeyParameters(method, primaryKeyColumns);
 
         // 添加方法参数
-        List<Parameter> notKeyParameters = new ArrayList<>();
         String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
         String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        List<Field> fields = new ArrayList<>();
+        for (TopLevelClass modelClass : modelClasses) {
+            fields.addAll(modelClass.getFields());
+        }
+        
+        List<Parameter> notKeyParameters = new ArrayList<>();
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
             if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdDateName.equals(javaProperty) && !updatedDateName.equals(javaProperty)) {
-                Parameter parameter = new Parameter(introspectedColumn.getFullyQualifiedJavaType(), javaProperty);
+                Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
                 notKeyParameters.add(parameter);

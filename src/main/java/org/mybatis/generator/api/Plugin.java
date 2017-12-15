@@ -142,11 +142,13 @@ public interface Plugin {
      * @param introspectedTable
      *            The class containing information about the table as
      *            introspected from the database
+     * @param modelClasses
+     *            All model classes
      * @return a List of GeneratedJavaFiles - these files will be saved
      *         with the other files from this run.
      */
-    List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(
-            IntrospectedTable introspectedTable);
+    // @modifier yepeng, add at 20171215, add param modelClasses
+    List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses);
 
     /**
      * This method can be used to generate any additional XML file needed by

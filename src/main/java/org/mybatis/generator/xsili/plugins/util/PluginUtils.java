@@ -6,10 +6,13 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
+import org.mybatis.generator.api.dom.java.Field;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
+import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.Context;
+import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
 
 public class PluginUtils {
 
@@ -19,6 +22,35 @@ public class PluginUtils {
     public static String getPropertyNotNull(Context context, String key) {
         String value = context.getProperty(key);
         return value == null ? "" : value;
+    }
+    
+    /**
+     * 如果column有对应枚举类, 就构建枚举类型参数, 否则构建对应数据类型的参数
+     * 
+     * @param introspectedColumn
+     * @param topLevelClass
+     * @param fields
+     * @return
+     */
+    public static Parameter buildParameter(IntrospectedColumn introspectedColumn,
+                                           TopLevelClass topLevelClass,
+                                           List<Field> fields) {
+        String javaProperty = introspectedColumn.getJavaProperty();
+        // 枚举字段
+        Field enumField = null;
+        for (Field field : fields) {
+            if (javaProperty.equals(field.getName()) && XsiliJavaBeansUtil.isEnumType(field.getType())) {
+                enumField = field;
+                break;
+            }
+        }
+
+        if (enumField != null) {
+            topLevelClass.addImportedType(enumField.getType());
+            return new Parameter(enumField.getType(), javaProperty);
+        } else {
+            return new Parameter(introspectedColumn.getFullyQualifiedJavaType(), javaProperty);
+        }
     }
     
     /**

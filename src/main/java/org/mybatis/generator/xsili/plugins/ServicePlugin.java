@@ -18,6 +18,7 @@ import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.xsili.Constants;
+import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -50,7 +51,7 @@ public class ServicePlugin extends PluginAdapter {
     private FullyQualifiedJavaType allFieldModelType;
     private FullyQualifiedJavaType modelCriteriaType;
     private FullyQualifiedJavaType modelSubCriteriaType;
-    private FullyQualifiedJavaType BusinessExceptionType;
+    private FullyQualifiedJavaType businessExceptionType;
 
     private FullyQualifiedJavaType listType;
 
@@ -77,12 +78,7 @@ public class ServicePlugin extends PluginAdapter {
             idGeneratorType = new FullyQualifiedJavaType(idGenerator);
         }
 
-        String businessExceptionName = properties.getProperty("businessException");
-        if (StringUtils.isNotBlank(businessExceptionName)) {
-            BusinessExceptionType = new FullyQualifiedJavaType(businessExceptionName);
-        } else {
-            BusinessExceptionType = new FullyQualifiedJavaType("java.lang.RuntimeException");
-        }
+        businessExceptionType = GenHelper.getBusinessExceptionType(context);
 
         servicePackage = properties.getProperty("targetPackage");
         serviceImplPackage = properties.getProperty("targetPackageImpl");
@@ -98,7 +94,7 @@ public class ServicePlugin extends PluginAdapter {
     }
 
     @Override
-    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
+    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");
 
@@ -284,10 +280,10 @@ public class ServicePlugin extends PluginAdapter {
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
             method.addBodyLine("return this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ");");
         } else {
-            serviceImplClass.addImportedType(BusinessExceptionType);
+            serviceImplClass.addImportedType(businessExceptionType);
             
             method.addBodyLine("if(this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ") == 0) {");
-            method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"插入数据库失败\");");
+            method.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"插入数据库失败\");");
             method.addBodyLine("}");
             method.addBodyLine("return " + modelParamName + ";");
         }
@@ -338,10 +334,10 @@ public class ServicePlugin extends PluginAdapter {
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
             method.addBodyLine("return this." + getMapper() + mapperMethodName + "(" + modelParamName + ");");
         } else {
-            serviceImplClass.addImportedType(BusinessExceptionType);
+            serviceImplClass.addImportedType(businessExceptionType);
             
             method.addBodyLine("if(this." + getMapper() + mapperMethodName + "(" + modelParamName + ") == 0) {");
-            method.addBodyLine("throw new " + BusinessExceptionType.getShortName() + "(\"记录不存在\");");
+            method.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"记录不存在\");");
             method.addBodyLine("}");
             method.addBodyLine("return " + modelParamName + ";");
         }

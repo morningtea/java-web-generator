@@ -52,28 +52,7 @@ public class IntrospectedTableJpa2Impl extends IntrospectedTable {
     @Override
     public void calculateGenerators(List<String> warnings, ProgressCallback progressCallback) {
         calculateJavaModelGenerators(warnings, progressCallback);
-
-        AbstractJavaClientGenerator javaClientGenerator = calculateClientGenerators(warnings, progressCallback);
-
-        calculateXmlMapperGenerator(javaClientGenerator, warnings, progressCallback);
-    }
-
-    protected void calculateXmlMapperGenerator(AbstractJavaClientGenerator javaClientGenerator,
-                                               List<String> warnings,
-                                               ProgressCallback progressCallback) {
-        // ignore, no xmlmapper
-
-        // if (javaClientGenerator == null) {
-        // if (context.getSqlMapGeneratorConfiguration() != null) {
-        // xmlMapperGenerator = new XMLMapperGenerator();
-        // }
-        // } else {
-        // xmlMapperGenerator = javaClientGenerator.getMatchedXMLGenerator();
-        // }
-        //
-        // initializeAbstractGenerator(xmlMapperGenerator, warnings,
-        // progressCallback);
-
+        calculateClientGenerators(warnings, progressCallback);
     }
 
     protected AbstractJavaClientGenerator calculateClientGenerators(List<String> warnings,
@@ -111,14 +90,6 @@ public class IntrospectedTableJpa2Impl extends IntrospectedTable {
     }
 
     protected void calculateJavaModelGenerators(List<String> warnings, ProgressCallback progressCallback) {
-        // mybatis 查询条件类
-        // if (getRules().generateExampleClass()) {
-        // AbstractJavaGenerator javaGenerator = new ExampleGenerator();
-        // initializeAbstractGenerator(javaGenerator, warnings,
-        // progressCallback);
-        // javaModelGenerators.add(javaGenerator);
-        // }
-
         if (getRules().generatePrimaryKeyClass()) {
             AbstractJavaGenerator javaGenerator = new PrimaryKeyGenerator();
             initializeAbstractGenerator(javaGenerator, warnings, progressCallback);
@@ -155,14 +126,23 @@ public class IntrospectedTableJpa2Impl extends IntrospectedTable {
     public List<GeneratedJavaFile> getGeneratedJavaFiles() {
         List<GeneratedJavaFile> answer = new ArrayList<GeneratedJavaFile>();
 
+        // 生成model/enum
         for (AbstractJavaGenerator javaGenerator : javaModelGenerators) {
             List<CompilationUnit> compilationUnits = javaGenerator.getCompilationUnits();
             for (CompilationUnit compilationUnit : compilationUnits) {
-                GeneratedJavaFile gjf = new GeneratedJavaFile(compilationUnit, context.getJavaModelGeneratorConfiguration().getTargetProject(), context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
-                answer.add(gjf);
+                if(compilationUnit.isJavaEnumeration()) {
+                    // 生成enum类
+                    GeneratedJavaFile gjf = new GeneratedJavaFile(compilationUnit, context.getJavaModelGeneratorConfiguration().getTargetProject(), context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
+                    answer.add(gjf);
+                } else {
+                    // 生成model类
+                    GeneratedJavaFile gjf = new GeneratedJavaFile(compilationUnit, context.getJavaModelGeneratorConfiguration().getTargetProject(), context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
+                    answer.add(gjf);
+                }
             }
         }
 
+        // 生成repository类
         for (AbstractJavaGenerator javaGenerator : clientGenerators) {
             List<CompilationUnit> compilationUnits = javaGenerator.getCompilationUnits();
             for (CompilationUnit compilationUnit : compilationUnits) {
@@ -177,22 +157,6 @@ public class IntrospectedTableJpa2Impl extends IntrospectedTable {
     @Override
     public List<GeneratedXmlFile> getGeneratedXmlFiles() {
         return new ArrayList<GeneratedXmlFile>();
-
-        // mybatis xml sql映射
-        // List<GeneratedXmlFile> answer = new ArrayList<GeneratedXmlFile>();
-        //
-        // if (xmlMapperGenerator != null) {
-        // Document document = xmlMapperGenerator.getDocument();
-        // GeneratedXmlFile gxf = new GeneratedXmlFile(document,
-        // getMyBatis3XmlMapperFileName(), getMyBatis3XmlMapperPackage(),
-        // context.getSqlMapGeneratorConfiguration().getTargetProject(),
-        // true, context.getXmlFormatter());
-        // if (context.getPlugins().sqlMapGenerated(gxf, this)) {
-        // answer.add(gxf);
-        // }
-        // }
-        //
-        // return answer;
     }
 
     @Override

@@ -25,6 +25,7 @@ import org.mybatis.generator.api.dom.java.Field;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.PrimitiveTypeWrapper;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
+import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
 import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
@@ -39,9 +40,13 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
     private static final FullyQualifiedJavaType ANNOTATION_CLASS_TABLE = new FullyQualifiedJavaType("javax.persistence.Table");
     private static final FullyQualifiedJavaType ANNOTATION_CLASS_COLUMN = new FullyQualifiedJavaType("javax.persistence.Column");
     private static final FullyQualifiedJavaType ANNOTATION_CLASS_ID = new FullyQualifiedJavaType("javax.persistence.Id");
-    private static final FullyQualifiedJavaType ANNOTATION_CLASS_GENERATED_VALUE = new FullyQualifiedJavaType("javax.persistence.GeneratedValue");
 
+    private static final FullyQualifiedJavaType ANNOTATION_CLASS_GENERATED_VALUE = new FullyQualifiedJavaType("javax.persistence.GeneratedValue");
     private static final FullyQualifiedJavaType CLASS_GENERATION_TYPE = new FullyQualifiedJavaType("javax.persistence.GenerationType");
+
+    private static final FullyQualifiedJavaType ANNOTATION_CLASS_ENUMERATED = new FullyQualifiedJavaType("javax.persistence.Enumerated");
+    private static final FullyQualifiedJavaType CLASS_ENUM_TYPE = new FullyQualifiedJavaType("javax.persistence.EnumType");
+
 
     // import javax.persistence.EnumType;
     // import javax.persistence.Enumerated;
@@ -117,6 +122,14 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
         } else if (!introspectedColumn.isNullable()) {// 非空
             topLevelClass.addImportedType(ANNOTATION_CLASS_COLUMN);
             field.addAnnotation("@" + ANNOTATION_CLASS_COLUMN.getShortName() + "(nullable = false)");
+        }
+        
+        // 添加枚举注解
+        if (XsiliJavaBeansUtil.isEnumType(field.getType())) {
+            topLevelClass.addImportedType(ANNOTATION_CLASS_ENUMERATED);
+            topLevelClass.addImportedType(CLASS_ENUM_TYPE);
+            field.addAnnotation("@" + ANNOTATION_CLASS_ENUMERATED.getShortName() + "(" + CLASS_ENUM_TYPE.getShortName()
+                                + ".STRING)");
         }
 
         return super.modelFieldGenerated(field, topLevelClass, introspectedColumn, introspectedTable, modelClassType);

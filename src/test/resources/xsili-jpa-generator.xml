@@ -10,6 +10,8 @@
 		<!-- 扩展配置 -->
 		<property name="createdDateName" value="createdDate"/>
 		<property name="updatedDateName" value="updatedDate"/>
+		<!-- 选填, 业务异常 -->
+		<property name="businessExceptionQualifiedName" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException"/>
 		
 		<!-- 更多配置参考 PropertyRegistry -->
 		<property name="javaFileEncoding" value="UTF-8"/>
@@ -36,8 +38,6 @@
 			<property name="targetPackageImpl" value="com.xsili.business.service.impl" />
 			<!-- 分页类型 -->
 			<property name="page" value="org.mybatis.generator.xsili.outputdependence.page.SimplePage" />
-			<!-- 选填, 业务异常 -->
-			<property name="businessException" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException" />
 			<!-- 选填, id生成器. 主键是字符类型且idGenerator!=null, 则调用 idGenerator#generateId() 设置主键值 -->
 			<property name="idGenerator" value="org.mybatis.generator.xsili.outputdependence.IDGenerator" />
 		</plugin>

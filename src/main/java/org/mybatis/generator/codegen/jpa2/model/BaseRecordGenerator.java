@@ -15,9 +15,6 @@
  */
 package org.mybatis.generator.codegen.jpa2.model;
 
-import static org.mybatis.generator.internal.util.JavaBeansUtil.getJavaBeansField;
-import static org.mybatis.generator.internal.util.JavaBeansUtil.getJavaBeansGetter;
-import static org.mybatis.generator.internal.util.JavaBeansUtil.getJavaBeansSetter;
 import static org.mybatis.generator.internal.util.messages.Messages.getString;
 
 import java.util.ArrayList;
@@ -35,8 +32,10 @@ import org.mybatis.generator.api.dom.java.JavaVisibility;
 import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
+import org.mybatis.generator.api.dom.java.TopLevelEnumeration;
 import org.mybatis.generator.codegen.AbstractJavaGenerator;
 import org.mybatis.generator.codegen.RootClassInfo;
+import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
 
 /**
  * 
@@ -84,14 +83,21 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
             }
         }
 
+        List<CompilationUnit> answer = new ArrayList<CompilationUnit>();
         String rootClass = getRootClass();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             if (RootClassInfo.getInstance(rootClass, warnings)
                     .containsProperty(introspectedColumn)) {
                 continue;
             }
-
-            Field field = getJavaBeansField(introspectedColumn, context, introspectedTable);
+            
+            // 枚举类
+            TopLevelEnumeration fieldEnumeration = XsiliJavaBeansUtil.getJavaBeansFieldEnum(topLevelClass, introspectedColumn, context, introspectedTable);
+            if(fieldEnumeration != null) {
+                answer.add(fieldEnumeration);
+            }
+            
+            Field field = XsiliJavaBeansUtil.getJavaBeansField(introspectedColumn, context, introspectedTable, fieldEnumeration);
             if (plugins.modelFieldGenerated(field, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.BASE_RECORD)) {
@@ -99,7 +105,7 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
                 topLevelClass.addImportedType(field.getType());
             }
 
-            Method method = getJavaBeansGetter(introspectedColumn, context, introspectedTable);
+            Method method = XsiliJavaBeansUtil.getJavaBeansGetter(introspectedColumn, context, introspectedTable, fieldEnumeration);
             if (plugins.modelGetterMethodGenerated(method, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.BASE_RECORD)) {
@@ -107,7 +113,7 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
             }
 
             if (!introspectedTable.isImmutable()) {
-                method = getJavaBeansSetter(introspectedColumn, context, introspectedTable);
+                method = XsiliJavaBeansUtil.getJavaBeansSetter(introspectedColumn, context, introspectedTable, fieldEnumeration);
                 if (plugins.modelSetterMethodGenerated(method, topLevelClass,
                         introspectedColumn, introspectedTable,
                         Plugin.ModelClassType.BASE_RECORD)) {
@@ -116,7 +122,6 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
             }
         }
 
-        List<CompilationUnit> answer = new ArrayList<CompilationUnit>();
         if (context.getPlugins().modelBaseRecordClassGenerated(
                 topLevelClass, introspectedTable)) {
             answer.add(topLevelClass);

@@ -164,11 +164,11 @@ public final class PluginAggregator implements Plugin {
 
     @Override
     public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(
-            IntrospectedTable introspectedTable) {
+            IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         List<GeneratedJavaFile> answer = new ArrayList<GeneratedJavaFile>();
         for (Plugin plugin : plugins) {
             List<GeneratedJavaFile> temp = plugin
-                    .contextGenerateAdditionalJavaFiles(introspectedTable);
+                    .contextGenerateAdditionalJavaFiles(introspectedTable, modelClasses);
             if (temp != null) {
                 answer.addAll(temp);
             }

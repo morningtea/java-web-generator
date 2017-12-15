@@ -21,6 +21,7 @@ import org.mybatis.generator.api.dom.xml.XmlElement;
 import org.mybatis.generator.config.MergeConstants;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.internal.util.StringUtility;
+import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
 
 /**
  * 
@@ -237,6 +238,10 @@ public class XsiliCommentGenerator implements CommentGenerator {
         sb.append("/** ");
 
         String remarks = introspectedColumn.getRemarks();
+        // 去掉匹配枚举格式的注释
+        remarks = XsiliJavaBeansUtil.excludeEnumRemarks(remarks);
+        remarks = remarks.trim();
+        
         if (addRemarkComments && StringUtility.stringHasValue(remarks)) {
             String remarkJoinStr = "";
             String[] remarkLines = remarks.split(System.getProperty("line.separator"));

@@ -10,9 +10,17 @@
 1. 新增org.mybatis.generator.codegen.jpa2包
 2. 新增Jpa2ModelAnnotationPlugin, Jpa2RepositoryJunitPlugin插件, 生成model注解和Repository测试类
 
+说明:
+1. SpringMvcControllerPlugin 支持生成传统风格和restful风格的API, 配置参数enableRestful即可
+2. 支持对实体类字段枚举化. 在数据库列字段添加以下格式的注释即可, 支持中/英文逗号分隔. (暂时只支持Jpa2模式)
+     * {enum: UNAUDITED(待审核), AUDIT_PASS(审核通过), AUDIT_NOT_PASS(审核未通过)}  
+     
+TODO 支持Oracle, PostGresql(添加驱动)
+
+
 ### Get started
 #### 示例
-插件支持hsqldb数据库内存模式, 只需要执行 MyBatisGeneratorTest即可生成样例代码.  
+插件支持hsqldb数据库内存模式, 只需要执行 MyBatisGeneratorTest/Jpa2GeneratorTest 即可生成样例代码.  
 1. 测试脚本 src/test/resources/hsqldb-test.sql
 2. 测试入口   
 src/test/java/generator/MyBatisGeneratorTest.java  
@@ -29,15 +37,17 @@ src/test/java/generator/Jpa2GeneratorTest.java
 2. 扩展SerializablePlugin, 为ExampleClass添加serialVersionUID (添加覆盖方法  @Override#modelExampleClassGenerated)
 3. 扩展org.mybatis.generator.api.dom.java.Method, 添加方法removeBodyLines()
 4. 扩展IntrospectedTable/ObjectFactory, 添加TargetRuntime.JPA2
-5. JavaMapperGenerator, XMLMapperGenerator, 屏蔽了以下方法已经对应的 Mapper sql.  
+5. 新增XsiliJavaBeansUtil, 继承JavaBeansUtil
+6. JavaMapperGenerator, XMLMapperGenerator, 屏蔽了以下方法已经对应的 Mapper sql.  
 addSelectByExampleWithBLOBsMethod(interfaze);  
 addInsertMethod(interfaze);  
 addUpdateByExampleSelectiveMethod(interfaze);  
 addUpdateByExampleWithBLOBsMethod(interfaze);  
 addUpdateByExampleWithoutBLOBsMethod(interfaze);  
 addUpdateByPrimaryKeyWithoutBLOBsMethod(interfaze);  
+7. 修改Plugin#contextGenerateAdditionalJavaFiles方法签名, 添加List<TopLevelClass> modelClasses参数
 
-除了第5点, 以上修改均是功能扩展, 可以兼容MBG的原有功能和配置项.
+除了第6点、第7点, 以上修改均是功能扩展, 可以兼容MBG的原有功能和配置项.
 
 >其他
 >1. src/site 是mybatis-generator-core-1.3.6的官方文档

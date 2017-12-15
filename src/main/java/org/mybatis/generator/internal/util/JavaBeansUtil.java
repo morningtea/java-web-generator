@@ -36,7 +36,8 @@ import org.mybatis.generator.config.TableConfiguration;
  */
 public class JavaBeansUtil {
 
-    private JavaBeansUtil() {
+    // @modifier yepeng, add at 20171215, private --> protected
+    protected JavaBeansUtil() {
         super();
     }
 
@@ -258,7 +259,8 @@ public class JavaBeansUtil {
         return method;
     }
 
-    private static boolean isTrimStringsEnabled(Context context) {
+    // @modifier yepeng, add at 20171215, private --> protected
+    protected static boolean isTrimStringsEnabled(Context context) {
         Properties properties = context
                 .getJavaModelGeneratorConfiguration().getProperties();
         boolean rc = isTrue(properties
@@ -266,7 +268,8 @@ public class JavaBeansUtil {
         return rc;
     }
 
-    private static boolean isTrimStringsEnabled(IntrospectedTable table) {
+    // @modifier yepeng, add at 20171215, private --> protected
+    protected static boolean isTrimStringsEnabled(IntrospectedTable table) {
         TableConfiguration tableConfiguration = table.getTableConfiguration();
         String trimSpaces = tableConfiguration.getProperties().getProperty(PropertyRegistry.MODEL_GENERATOR_TRIM_STRINGS);
         if (trimSpaces != null) {
@@ -275,7 +278,8 @@ public class JavaBeansUtil {
         return isTrimStringsEnabled(table.getContext());
     }
 
-    private static boolean isTrimStringsEnabled(IntrospectedColumn column) {
+    // @modifier yepeng, add at 20171215, private --> protected
+    protected static boolean isTrimStringsEnabled(IntrospectedColumn column) {
         String trimSpaces = column.getProperties().getProperty(PropertyRegistry.MODEL_GENERATOR_TRIM_STRINGS);
         if (trimSpaces != null) {
             return isTrue(trimSpaces);

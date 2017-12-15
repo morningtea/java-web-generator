@@ -73,7 +73,8 @@ public class MybatisMapperJunitPlugin extends PluginAdapter {
         listType = new FullyQualifiedJavaType("java.util.List");
     }
 
-    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
+    @Override
+    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");

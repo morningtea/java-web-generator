@@ -70,7 +70,7 @@ public abstract class PluginAdapter implements Plugin {
 
     @Override
     public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(
-            IntrospectedTable introspectedTable) {
+            IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         return null;
     }
 

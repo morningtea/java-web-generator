@@ -30,6 +30,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
 import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
@@ -87,7 +88,8 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         listType = new FullyQualifiedJavaType("java.util.List");
     }
 
-    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable) {
+    @Override
+    public List<GeneratedJavaFile> contextGenerateAdditionalJavaFiles(IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");
@@ -109,7 +111,7 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         addMapperField(topLevelClass);
 
         // 添加基础方法
-        topLevelClass.addMethod(addCRUD(topLevelClass, introspectedTable));
+        topLevelClass.addMethod(addCRUD(topLevelClass, introspectedTable, modelClasses));
 
         // 生成文件
         GeneratedJavaFile file = new GeneratedJavaFile(topLevelClass, targetProject, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
@@ -124,7 +126,7 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method addCRUD(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+    private Method addCRUD(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         Method method = new Method();
         method.addAnnotation("@Test");
         method.setVisibility(JavaVisibility.PUBLIC);
@@ -132,30 +134,19 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         method.setName("crudTest");
 
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
-        String key = "";
-        List<Parameter> keyParameterList = new ArrayList<>();
-        if (introspectedTable.getRules().generatePrimaryKeyClass()) {
-            FullyQualifiedJavaType keyType = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
-            key = "(" + keyType.getShortName() + ") " + modelParamName;
-        } else {
-            keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-            for (Parameter keyParameter : keyParameterList) {
-                String keyPart = modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(keyParameter.getName()) + "()";
-                key += keyPart + ", ";
-            }
-            if(key.length() > 0) {
-                key = key.substring(0, key.lastIndexOf(","));
-            }
-        }
-
         method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new "
                            + allFieldModelType.getShortName() + "();");
 
         String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
         String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
-        
+        List<Field> fields = new ArrayList<>();
+        for (TopLevelClass modelClass : modelClasses) {
+            fields.addAll(modelClass.getFields());
+        }
+                
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
+            String javaProperty = introspectedColumn.getJavaProperty();
             // 非自增主键, 默认使用UUID
             if (PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn)) {
                 if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
@@ -173,15 +164,23 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
                     }
                     method.addBodyLine(modelParamName + PluginUtils.generateSetterCall(introspectedColumn, params));
                 }
-            } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {
+            } else if (createdDateName.equals(javaProperty)) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdDateName) + "(new Date());");
-            } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
+            } else if (updatedDateName.equals(javaProperty)) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
             } else if (introspectedColumn.isStringColumn()) {
-                String javaProperty = introspectedColumn.getJavaProperty();
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(\"" + javaProperty + "\");");
+                String param = "";
+                FullyQualifiedJavaType parameterType = getParameterType(introspectedColumn, fields);
+                if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
+                    topLevelClass.addImportedType(parameterType);
+                    param = parameterType.getShortName() + ".values()[0]";
+                } else {
+                    param = "\"" + javaProperty + "\"";
+                }
+
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(" + param + ");");
             }
         }
 
@@ -191,32 +190,57 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         method.addBodyLine("");
         method.addBodyLine("//vaild updateRecord Test");
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
-            String property = introspectedColumn.getJavaProperty();
-            if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(\""
-                                   + PluginUtils.upperCaseFirstLetter(property) + "\");");
+            String javaProperty = introspectedColumn.getJavaProperty();
+            if (introspectedColumn.isStringColumn() && !javaProperty.toUpperCase().equals("ID")) {
+                String param = "";
+                FullyQualifiedJavaType parameterType = getParameterType(introspectedColumn, fields);
+                if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
+                    topLevelClass.addImportedType(parameterType);
+                    param = parameterType.getShortName() + ".values()[0]";
+                } else {
+                    param = "\"" + javaProperty + "\"";
+                }
+
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(" + param + ");");
             }
+            
             if (introspectedColumn.isJDBCDateColumn() || introspectedColumn.isJDBCTimeColumn()) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(new Date());");
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(new Date());");
             }
         }
         method.addBodyLine(getMapper() + "saveAndFlush(" + modelParamName + ");");
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
-            String property = introspectedColumn.getJavaProperty();
-            if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
-                method.addBodyLine("assertEquals(\"" + PluginUtils.upperCaseFirstLetter(property) + "\", "
-                                   + modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(property) + "());");
+            String javaProperty = introspectedColumn.getJavaProperty();
+            if (introspectedColumn.isStringColumn() && !javaProperty.toUpperCase().equals("ID")) {
+                method.addBodyLine("assertEquals(\"" + PluginUtils.upperCaseFirstLetter(javaProperty) + "\", "
+                                   + modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(javaProperty) + "());");
             }
         }
 
         method.addBodyLine("");
         method.addBodyLine("//vaild findById Test");
         // 填充key
+        String key = "";
+        List<Parameter> keyParameterList = new ArrayList<>();
+        if (introspectedTable.getRules().generatePrimaryKeyClass()) {
+            FullyQualifiedJavaType keyType = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
+            key = "(" + keyType.getShortName() + ") " + modelParamName;
+        } else {
+            keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+            for (Parameter keyParameter : keyParameterList) {
+                String keyPart = modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(keyParameter.getName()) + "()";
+                key += keyPart + ", ";
+            }
+            if(key.length() > 0) {
+                key = key.substring(0, key.lastIndexOf(","));
+            }
+        }
         String keyParams = prepareCallByKey(introspectedTable, method, keyParameterList);
         if(StringUtils.isNotBlank(keyParams)) {
             key = keyParams;
         }
+        
         method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "findById(" + key + ").get().getId());");
 
         method.addBodyLine("");
@@ -241,6 +265,17 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         method.addBodyLine("connt = " + getMapper() + "count();");
         method.addBodyLine("assertEquals(0, connt);");
         return method;
+    }
+
+    private FullyQualifiedJavaType getParameterType(IntrospectedColumn introspectedColumn, List<Field> fields) {
+        // 枚举字段
+        String javaProperty = introspectedColumn.getJavaProperty();
+        for (Field field : fields) {
+            if (javaProperty.equals(field.getName()) && XsiliJavaBeansUtil.isEnumType(field.getType())) {
+                return field.getType();
+            }
+        }
+        return introspectedColumn.getFullyQualifiedJavaType();
     }
 
     private void addImport(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
