@@ -64,7 +64,7 @@
 		</plugin>
 		
 		<!-- mapper测试代码生成  targetPackage与对应的实体生成保持一致 -->
-		<plugin type="org.mybatis.generator.xsili.plugins.Jpa2RepositoryJunitPlugin">
+		<plugin type="org.mybatis.generator.xsili.plugins.testplugins.Jpa2RepositoryTestPlugin">
 			<property name="targetProject" value="src/test/java" />
 			<property name="targetPackage" value="com.xsili.test.business.repository" />
 			<!-- 测试基类 -->

@@ -19,6 +19,7 @@ import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.GenHelper;
+import org.mybatis.generator.xsili.plugins.testplugins.Jpa2RepositoryTestPlugin;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -570,7 +571,7 @@ public class ServicePlugin extends PluginAdapter {
 
     /**
      * 如果没有生成主键类, 并且是复合主键, 则以allFieldModel填充复合主键, 并返回调用参数<br>
-     * {@link Jpa2RepositoryJunitPlugin#prepareCallByKey}
+     * {@link Jpa2RepositoryTestPlugin#prepareCallByKey}
      * @param introspectedTable
      * @param caller
      * @return

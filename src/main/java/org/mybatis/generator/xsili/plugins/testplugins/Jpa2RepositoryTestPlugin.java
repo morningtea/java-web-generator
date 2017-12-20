@@ -13,7 +13,7 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package org.mybatis.generator.xsili.plugins;
+package org.mybatis.generator.xsili.plugins.testplugins;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +32,7 @@ import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
 import org.mybatis.generator.xsili.Constants;
+import org.mybatis.generator.xsili.plugins.ServicePlugin;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -41,7 +42,7 @@ import org.mybatis.generator.xsili.plugins.util.PluginUtils;
  * @author 叶鹏
  * @date 2017年12月12日
  */
-public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
+public class Jpa2RepositoryTestPlugin extends PluginAdapter {
 
     private FullyQualifiedJavaType junit;
     private FullyQualifiedJavaType assertType;
@@ -80,7 +81,7 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
     }
 
     // 初始化
-    public Jpa2RepositoryJunitPlugin() {
+    public Jpa2RepositoryTestPlugin() {
         super();
         junit = new FullyQualifiedJavaType("org.junit.Test");
         assertType = new FullyQualifiedJavaType("static org.junit.Assert.assertEquals");
