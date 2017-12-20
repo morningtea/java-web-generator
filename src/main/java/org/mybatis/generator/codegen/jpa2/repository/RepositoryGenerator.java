@@ -22,15 +22,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.mybatis.generator.api.CommentGenerator;
+import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.dom.java.CompilationUnit;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.Interface;
 import org.mybatis.generator.api.dom.java.JavaVisibility;
+import org.mybatis.generator.api.dom.java.Method;
+import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.codegen.AbstractJavaClientGenerator;
 import org.mybatis.generator.codegen.AbstractXmlGenerator;
 import org.mybatis.generator.codegen.mybatis3.javamapper.elements.AbstractJavaMapperMethodGenerator;
 import org.mybatis.generator.codegen.mybatis3.javamapper.elements.SelectByExampleWithoutBLOBsMethodGenerator;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -40,6 +44,9 @@ import org.mybatis.generator.xsili.plugins.util.PluginUtils;
  */
 public class RepositoryGenerator extends AbstractJavaClientGenerator {
 
+    private FullyQualifiedJavaType annotationModifyingType = new FullyQualifiedJavaType("org.springframework.data.jpa.repository.Modifying");
+    private FullyQualifiedJavaType annotationQueryType = new FullyQualifiedJavaType("org.springframework.data.jpa.repository.Query");
+    
     public RepositoryGenerator() {
         super(false);
     }
@@ -79,6 +86,41 @@ public class RepositoryGenerator extends AbstractJavaClientGenerator {
         interfaze.addSuperInterface(new FullyQualifiedJavaType(querydslPEType.getShortName()));
         interfaze.addImportedType(querydslPEType);
 
+        // 添加方法
+        // 逻辑删除方法
+        String logicDeletedName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_LOGIC_DELETED_NAME);
+        for(IntrospectedColumn column : introspectedTable.getAllColumns()) {
+            if(column.getJavaProperty().equals(logicDeletedName)) {
+                Method updateDeletedMethod = new Method();
+                updateDeletedMethod.setName("updateDeleted");
+                updateDeletedMethod.setReturnType(FullyQualifiedJavaType.getIntInstance());
+                
+                // 拼接hql
+                StringBuilder hql = new StringBuilder();
+                List<IntrospectedColumn> keyColumns = introspectedTable.getPrimaryKeyColumns();
+                hql.append("update ").append(modelType.getShortName());
+                hql.append(" set ").append(logicDeletedName + " = ?").append(keyColumns.size() + 1);
+                hql.append(" where ");
+                for (int i = 0; i < keyColumns.size(); i++) {
+                    IntrospectedColumn keyColumn = keyColumns.get(i);
+                    hql.append(keyColumn.getJavaProperty() + " = ?").append(i + 1);
+                    // 如果不是最后一个参数, 则拼接 and
+                    if (i + 1 < keyColumns.size()) {
+                        hql.append(" and ");
+                    }
+                    updateDeletedMethod.addParameter(new Parameter(keyColumn.getFullyQualifiedJavaType(), keyColumn.getJavaProperty()));
+                }
+                updateDeletedMethod.addParameter(new Parameter(FullyQualifiedJavaType.getBooleanPrimitiveInstance(), "isDeleted"));
+
+                updateDeletedMethod.addAnnotation("@Modifying");
+                updateDeletedMethod.addAnnotation("@Query(\"" + hql.toString() + "\")");
+                interfaze.addImportedType(annotationModifyingType);
+                interfaze.addImportedType(annotationQueryType);
+                
+                interfaze.addMethod(updateDeletedMethod);
+            }
+        }
+        
         // TODO 添加 listWithoutBLOBs
         // addSelectByExampleWithoutBLOBsMethod(interfaze);
 

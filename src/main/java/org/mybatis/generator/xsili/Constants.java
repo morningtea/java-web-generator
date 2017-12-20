@@ -12,6 +12,7 @@ public class Constants {
 
     public static final String KEY_CREATED_DATE_NAME = "createdDateName";
     public static final String KEY_UPDATED_DATE_NAME = "updatedDateName";
+    public static final String KEY_LOGIC_DELETED_NAME = "logicDeletedName";
     public static final String KEY_BUSINESS_EXCEPTION_QUALIFIED_NAME = "businessExceptionQualifiedName";
 
 }

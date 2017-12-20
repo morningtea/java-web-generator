@@ -5,7 +5,7 @@ CREATE TABLE t_table1 (
   title varchar(20) NOT NULL,
   description varchar(1000),
   audit_status varchar(20) unique,
-  is_delete bit(1),
+  is_deleted bit(1),
   PRIMARY KEY (id)
 );
 comment on table t_table1 is '测试1';
@@ -13,7 +13,7 @@ comment on column t_table1.id is '主键';
 comment on column t_table1.audit_status is '{enum: UNAUDITED(待审核), AUDIT_PASS(审核通过), AUDIT_NOT_PASS(审核未通过)}';
 comment on column t_table1.title is '标题';
 comment on column t_table1.description is '描述';
-comment on column t_table1.is_delete is '删除状态';
+comment on column t_table1.is_deleted is '删除状态';
 
 -- blob 自增主键
 CREATE TABLE t_blob_auto_id (
@@ -40,6 +40,7 @@ CREATE TABLE t_blob_union_key (
   name varchar(20),
   blob blob,
   clob clob,
+  is_deleted bit(1),
   created_date datetime NOT NULL,
   updated_date datetime DEFAULT NULL,
   PRIMARY KEY (id, id2)
@@ -50,6 +51,7 @@ comment on column t_blob_union_key.id2 is '主键2';
 comment on column t_blob_union_key.name is '名称';
 comment on column t_blob_union_key.blob is '二进制';
 comment on column t_blob_union_key.clob is 'clob';
+comment on column t_blob_union_key.is_deleted is '删除状态';
 comment on column t_blob_union_key.created_date is '创建时间';
 comment on column t_blob_union_key.updated_date is '创建时间';
 

@@ -9,6 +9,7 @@
 添加对JPA2的支持
 1. 新增org.mybatis.generator.codegen.jpa2包
 2. 新增Jpa2ModelAnnotationPlugin, Jpa2RepositoryJunitPlugin插件, 生成model注解和Repository测试类
+3. 支持生成逻辑删除方法Repository#updateDeleted, 需要配置logicDeletedName
 
 说明:
 1. SpringMvcControllerPlugin 支持生成传统风格和restful风格的API, 配置参数enableRestful即可
@@ -16,7 +17,7 @@
      * {enum: UNAUDITED(待审核), AUDIT_PASS(审核通过), AUDIT_NOT_PASS(审核未通过)}  
      
 TODO 支持Oracle, PostGresql(添加驱动)
-
+TODO 如果是自增主键, 支持insert回填id(在 mapper.xml#insert 下添加 useGeneratedKeys="true" keyProperty="id")
 
 ### Get started
 #### 示例
