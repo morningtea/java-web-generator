@@ -173,11 +173,11 @@ public class MybatisMapperJunitPlugin extends PluginAdapter {
         }
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild insertRecord Test");
+        method.addBodyLine("// insertRecord Test");
         method.addBodyLine("assertEquals(1, " + getMapper() + "insertSelective(" + modelParamName + "));");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild updateRecord Test");
+        method.addBodyLine("// updateRecord Test");
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String property = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
@@ -200,12 +200,12 @@ public class MybatisMapperJunitPlugin extends PluginAdapter {
         }
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild selectRecord Test");
+        method.addBodyLine("// selectRecord Test");
         method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "selectByPrimaryKey(" + key
                            + ").getId());");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild selectByExample Test");
+        method.addBodyLine("// selectByExample Test");
         method.addBodyLine(modelCriteriaType.getShortName() + " criteria = new " + modelCriteriaType.getShortName()
                            + "();");
         method.addBodyLine("criteria.createCriteria().andIdEqualTo(" + modelParamName + ".getId());");
@@ -214,19 +214,19 @@ public class MybatisMapperJunitPlugin extends PluginAdapter {
         method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild countByExample Test");
+        method.addBodyLine("// countByExample Test");
         method.addBodyLine("long connt = " + getMapper() + "countByExample(criteria);");
         method.addBodyLine("assertEquals(1, connt);");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild page Test");
+        method.addBodyLine("// page Test");
         method.addBodyLine("criteria.setPage(1);");
         method.addBodyLine("criteria.setLimit(10);");
         method.addBodyLine(modelType.getShortName() + "s = " + getMapper() + "selectByExample(criteria);");
         method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild deleteRecord Test");
+        method.addBodyLine("// deleteRecord Test");
         method.addBodyLine("assertEquals(1, " + getMapper() + "deleteByPrimaryKey(" + key + "));");
         return method;
     }

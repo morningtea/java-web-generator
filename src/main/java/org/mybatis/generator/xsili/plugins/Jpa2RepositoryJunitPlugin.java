@@ -184,11 +184,11 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
             }
         }
 
-        method.addBodyLine("//vaild insertRecord Test");
+        method.addBodyLine("// insertRecord Test");
         method.addBodyLine(getMapper() + "save(" + modelParamName + ");");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild updateRecord Test");
+        method.addBodyLine("// updateRecord Test");
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !javaProperty.toUpperCase().equals("ID")) {
@@ -228,7 +228,7 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         }
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild findById Test");
+        method.addBodyLine("// findById Test");
         // 填充key
         String key = "";
         List<Parameter> keyParameterList = new ArrayList<>();
@@ -253,23 +253,23 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "findById(" + key + ").get().getId());");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild findAll Test");
+        method.addBodyLine("// findAll Test");
         method.addBodyLine("List<" + allFieldModelType.getShortName() + "> list = " + getMapper()
                            + "findAll();");
         method.addBodyLine("assertEquals(1, list.size());");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild count Test");
+        method.addBodyLine("// count Test");
         method.addBodyLine("long connt = " + getMapper() + "count();");
         method.addBodyLine("assertEquals(1, connt);");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild page Test");
+        method.addBodyLine("// page Test");
         method.addBodyLine("list = " + getMapper() + "findAll();");
         method.addBodyLine("assertEquals(1, " + "list.size());");
 
         method.addBodyLine("");
-        method.addBodyLine("//vaild deleteById Test");
+        method.addBodyLine("// deleteById Test");
         method.addBodyLine(getMapper() + "deleteById(" + key + ");");
         method.addBodyLine("connt = " + getMapper() + "count();");
         method.addBodyLine("assertEquals(0, connt);");
