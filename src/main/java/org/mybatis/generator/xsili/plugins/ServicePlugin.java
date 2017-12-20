@@ -499,27 +499,6 @@ public class ServicePlugin extends PluginAdapter {
         return method;
     }
 
-    
-    /**
-     * count
-     * 
-     * @param introspectedTable
-     * @return
-     */
-    // private Method countByExample() {
-    // Method method = new Method();
-    // method.setName("count");
-    // method.setReturnType(FullyQualifiedJavaType.getIntInstance());
-    // method.addParameter(new Parameter(modelCriteriaType, "criteria"));
-    // method.setVisibility(JavaVisibility.PUBLIC);
-    // StringBuilder sb = new StringBuilder();
-    // sb.append("int count = this.").append(getMapper()).append("countByExample");
-    // sb.append("(").append("criteria").append(");");
-    // method.addBodyLine(sb.toString());
-    // method.addBodyLine("return count;");
-    // return method;
-    // }
-
     /**
      * 添加 LOGGER 字段
      */
@@ -591,7 +570,7 @@ public class ServicePlugin extends PluginAdapter {
 
     /**
      * 如果没有生成主键类, 并且是复合主键, 则以allFieldModel填充复合主键, 并返回调用参数<br>
-     * 和 {@link Jpa2RepositoryJunitPlugin#prepareCallByKey} 重复
+     * {@link Jpa2RepositoryJunitPlugin#prepareCallByKey}
      * @param introspectedTable
      * @param caller
      * @return

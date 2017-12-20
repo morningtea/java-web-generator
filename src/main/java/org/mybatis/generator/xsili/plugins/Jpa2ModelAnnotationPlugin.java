@@ -47,11 +47,6 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
     private static final FullyQualifiedJavaType ANNOTATION_CLASS_ENUMERATED = new FullyQualifiedJavaType("javax.persistence.Enumerated");
     private static final FullyQualifiedJavaType CLASS_ENUM_TYPE = new FullyQualifiedJavaType("javax.persistence.EnumType");
 
-
-    // import javax.persistence.EnumType;
-    // import javax.persistence.Enumerated;
-    // @Enumerated(EnumType.STRING)
-
     @Override
     public void setProperties(Properties properties) {
         super.setProperties(properties);
