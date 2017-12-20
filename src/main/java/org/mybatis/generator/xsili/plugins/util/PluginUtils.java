@@ -111,6 +111,24 @@ public class PluginUtils {
     }
     
     /**
+     * 优先返回fields.field字段类型
+     * 
+     * @param introspectedColumn
+     * @param fields
+     * @return
+     */
+    public static FullyQualifiedJavaType calculateParameterType(IntrospectedColumn introspectedColumn, List<Field> fields) {
+        // 枚举字段
+        String javaProperty = introspectedColumn.getJavaProperty();
+        for (Field field : fields) {
+            if (javaProperty.equals(field.getName()) && XsiliJavaBeansUtil.isEnumType(field.getType())) {
+                return field.getType();
+            }
+        }
+        return introspectedColumn.getFullyQualifiedJavaType();
+    }
+    
+    /**
      * 如果有单独创建key, 则返回key类型<br>
      * 否则,如果是单主键, 则返回该列对应的主键类型<br>
      * 否则,返回 all field model (Rules#calculateAllFieldsClass())

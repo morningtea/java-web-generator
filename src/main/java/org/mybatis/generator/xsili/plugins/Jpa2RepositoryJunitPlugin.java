@@ -172,7 +172,7 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
             } else if (introspectedColumn.isStringColumn()) {
                 String param = "";
-                FullyQualifiedJavaType parameterType = getParameterType(introspectedColumn, fields);
+                FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
                 if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
                     topLevelClass.addImportedType(parameterType);
                     param = parameterType.getShortName() + ".values()[0]";
@@ -193,12 +193,12 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
             String javaProperty = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !javaProperty.toUpperCase().equals("ID")) {
                 String param = "";
-                FullyQualifiedJavaType parameterType = getParameterType(introspectedColumn, fields);
+                FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
                 if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
                     topLevelClass.addImportedType(parameterType);
                     param = parameterType.getShortName() + ".values()[0]";
                 } else {
-                    param = "\"" + javaProperty + "\"";
+                    param = "\"" + PluginUtils.upperCaseFirstLetter(javaProperty) + "\"";
                 }
 
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(" + param + ");");
@@ -213,8 +213,17 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !javaProperty.toUpperCase().equals("ID")) {
-                method.addBodyLine("assertEquals(\"" + PluginUtils.upperCaseFirstLetter(javaProperty) + "\", "
-                                   + modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(javaProperty) + "());");
+                String param = "";
+                FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
+                if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
+                    topLevelClass.addImportedType(parameterType);
+                    param = parameterType.getShortName() + ".values()[0]";
+                } else {
+                    param = "\"" + PluginUtils.upperCaseFirstLetter(javaProperty) + "\"";
+                }
+                
+                method.addBodyLine("assertEquals(" + param + ", "
+                    + modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(javaProperty) + "());");
             }
         }
 
@@ -265,17 +274,6 @@ public class Jpa2RepositoryJunitPlugin extends PluginAdapter {
         method.addBodyLine("connt = " + getMapper() + "count();");
         method.addBodyLine("assertEquals(0, connt);");
         return method;
-    }
-
-    private FullyQualifiedJavaType getParameterType(IntrospectedColumn introspectedColumn, List<Field> fields) {
-        // 枚举字段
-        String javaProperty = introspectedColumn.getJavaProperty();
-        for (Field field : fields) {
-            if (javaProperty.equals(field.getName()) && XsiliJavaBeansUtil.isEnumType(field.getType())) {
-                return field.getType();
-            }
-        }
-        return introspectedColumn.getFullyQualifiedJavaType();
     }
 
     private void addImport(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
