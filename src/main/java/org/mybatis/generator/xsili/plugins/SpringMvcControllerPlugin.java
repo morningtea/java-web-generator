@@ -361,6 +361,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             method.addBodyLine("}");
         } else {
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new " + allFieldModelType.getShortName() + "();");
+            PluginUtils.generateModelSetterBodyLine(modelParamName, method, keyParameters);
         }
         PluginUtils.generateModelSetterBodyLine(modelParamName, method, notKeyParameters);
 
@@ -370,7 +371,15 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             method.addBodyLine("// 校验参数");
             method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
         }
-
+        // 校验所有者
+        IntrospectedColumn ownerColumn = GenHelper.getOwnerField(introspectedTable);
+        if(ownerColumn != null) {
+            // checkOwner
+            method.addBodyLine("// 校验所有者");
+            method.addBodyLine("super.checkOwner(" + PluginUtils.generateGetterCall(modelParamName, ownerColumn.getJavaProperty(), null, false) + ");");
+            method.addBodyLine("");
+        }
+        
         // 调用Service
         method.addBodyLine("");
         if (isSelective) {
@@ -420,7 +429,24 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 填充key
         String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
         
-        // 调用Service
+        // 校验所有者
+        IntrospectedColumn ownerColumn = GenHelper.getOwnerField(introspectedTable);
+        if(ownerColumn != null) {
+            // 调用Service get
+            String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
+            method.addBodyLine("if(" + modelParamName + " == null) {");
+            method.addBodyLine("return super.success();");
+            method.addBodyLine("}");
+            
+            // checkOwner
+            method.addBodyLine("");
+            method.addBodyLine("// 校验所有者");
+            method.addBodyLine("super.checkOwner(" + PluginUtils.generateGetterCall(modelParamName, ownerColumn.getJavaProperty(), null, false) + ");");
+            method.addBodyLine("");
+        }
+        
+        // 调用Service delete
         if (GenHelper.hasLogicDeletedField(introspectedTable)) {
             method.addBodyLine("this." + getService() + "deleteLogically(" + keyParams + ");");
         } else {

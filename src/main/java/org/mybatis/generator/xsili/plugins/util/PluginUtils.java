@@ -74,27 +74,39 @@ public class PluginUtils {
     }
     
     /**
-     * 生成 <b>.getter(params);</b> call
-     * 
+     * 生成 <b>obj.getter(params)[;]</b> call
+     * @param obj
+     * @param property
+     * @param params
+     * @param withSemicolon 是否包含分号
      * @return
      */
-    public static String generateGetterCall(IntrospectedColumn introspectedColumn, String params) {
-        return generateGetterSetterCall("get", introspectedColumn, params);
+    public static String generateGetterCall(String obj, String property, String params, boolean withSemicolon) {
+        return generateGetterSetterCall(obj, "get", property, params, withSemicolon);
     }
 
     /**
-     * 生成 <b>.setter(params);</b> call
-     * 
+     * 生成 <b>obj.setter(params)[;]</b> call
+     * @param obj
+     * @param property
+     * @param params
+     * @param withSemicolon 是否包含分号
      * @return
      */
-    public static String generateSetterCall(IntrospectedColumn introspectedColumn, String params) {
-        return generateGetterSetterCall("set", introspectedColumn, params);
+    public static String generateSetterCall(String obj, String property, String params, boolean withSemicolon) {
+        return generateGetterSetterCall(obj, "set", property, params, withSemicolon);
     }
 
-    private static String generateGetterSetterCall(String getterSetter,
-                                                   IntrospectedColumn introspectedColumn,
-                                                   String params) {
-        return "." + getterSetter + upperCaseFirstLetter(introspectedColumn.getJavaProperty()) + "(" + params + ");";
+    private static String generateGetterSetterCall(String obj,
+                                                   String getterSetter,
+                                                   String property,
+                                                   String params,
+                                                   boolean withSemicolon) {
+        if(params == null) {
+            params = "";
+        }
+        return obj + "." + getterSetter + upperCaseFirstLetter(property) + "(" + params + ")"
+               + (withSemicolon ? ";" : "");
     }
 
     /**
@@ -105,8 +117,7 @@ public class PluginUtils {
      */
     public static void generateModelSetterBodyLine(String modelParamName, Method method, List<Parameter> parameters) {
         for (Parameter parameter : parameters) {
-            method.addBodyLine(modelParamName + ".set" + upperCaseFirstLetter(parameter.getName()) + "("
-                               + parameter.getName() + ");");
+            method.addBodyLine(generateSetterCall(modelParamName, parameter.getName(), parameter.getName(), true));
         }
     }
     

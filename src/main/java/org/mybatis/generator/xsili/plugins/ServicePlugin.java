@@ -281,7 +281,7 @@ public class ServicePlugin extends PluginAdapter {
                 if (introspectedColumn.isStringColumn() && idGeneratorType != null) {
                     serviceImplClass.addImportedType(idGeneratorType);
                     String params = idGeneratorType.getShortName() + ".generateId()";
-                    method.addBodyLine(modelParamName + PluginUtils.generateSetterCall(introspectedColumn, params));
+                    method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, introspectedColumn.getJavaProperty(), params, true));
                 }
             } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {
                 serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));

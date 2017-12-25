@@ -163,7 +163,7 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
                         // 字符串以外的类型, 设置为null, 需要用户手动修改
                         params = "null";
                     }
-                    method.addBodyLine(modelParamName + PluginUtils.generateSetterCall(introspectedColumn, params));
+                    method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, introspectedColumn.getJavaProperty(), params, true));
                 }
             } else if (createdDateName.equals(javaProperty)) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));

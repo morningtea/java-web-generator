@@ -9,6 +9,7 @@ import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.config.Context;
+import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
  * @author 叶鹏
@@ -33,7 +34,8 @@ public class GenHelper {
      * @return maybe null
      */
     public static IntrospectedColumn getLogicDeletedField(IntrospectedTable introspectedTable) {
-        return getFieldByName(introspectedTable, Constants.KEY_LOGIC_DELETED_NAME);
+        String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_LOGIC_DELETED_NAME);
+        return getFieldByName(introspectedTable, fieldName);
     }
     
     /**
@@ -43,7 +45,8 @@ public class GenHelper {
      * @return maybe null
      */
     public static IntrospectedColumn getOwnerField(IntrospectedTable introspectedTable) {
-        return getFieldByName(introspectedTable, Constants.KEY_OWNER_NAME);
+        String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_OWNER_NAME);
+        return getFieldByName(introspectedTable, fieldName);
     }
     
     private static IntrospectedColumn getFieldByName(IntrospectedTable introspectedTable, String fieldName) {

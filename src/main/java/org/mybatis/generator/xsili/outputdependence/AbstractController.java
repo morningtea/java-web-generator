@@ -9,8 +9,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.session.Session;
 import org.apache.shiro.subject.Subject;
+import org.mybatis.generator.xsili.outputdependence.exception.BusinessException;
 import org.mybatis.generator.xsili.outputdependence.model.Result;
 import org.mybatis.generator.xsili.outputdependence.user.AdminUser;
+import org.mybatis.generator.xsili.outputdependence.user.CommonUser;
 import org.mybatis.generator.xsili.outputdependence.user.User;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -65,6 +67,17 @@ public abstract class AbstractController {
         Subject subject = SecurityUtils.getSubject();
         User user = (User) subject.getPrincipal();
         return user;
+    }
+    
+    protected CommonUser getLoginCommonUser() {
+        Subject subject = SecurityUtils.getSubject();
+        return (CommonUser) subject.getPrincipal();
+    }
+
+    protected void checkOwner(Integer userId) {
+        if (!getLoginCommonUser().getId().equals(userId)) {
+            throw new BusinessException("当前用户不是数据项的所有者");
+        }
     }
 
     /**

@@ -12,6 +12,8 @@
 		<property name="updatedDateName" value="updatedDate"/>
 		<!-- 标识逻辑删除的字段 -->
 		<property name="logicDeletedName" value="isDeleted"/>
+		<!-- 标识当前记录所有者的字段 -->
+		<property name="ownerName" value="userId"/>
 		<!-- 选填, 业务异常 -->
 		<property name="businessExceptionQualifiedName" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException"/>
 		
