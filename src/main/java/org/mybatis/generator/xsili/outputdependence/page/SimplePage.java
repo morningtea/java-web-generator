@@ -71,11 +71,19 @@ public class SimplePage<T> implements Serializable {
         this.totalCount = totalCount;
     }
 
+    /**
+     * jpa分页查询转换
+     * 
+     * @param page
+     * @return
+     */
     public static <T> SimplePage<T> buildPage(Page<T> page) {
         return buildPage(page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements());
     }
 
     /**
+     * 
+     * mybatis分页查询转换
      * 
      * @param rows
      * @param queryParam
