@@ -19,6 +19,12 @@ public class PluginUtils {
     // 如果生成主键类, 该常量值会被controller引用, 出现在方法参数上
     public static final String PRIMARY_KEY_PARAMETER_NAME = "primaryKey";
 
+    /**
+     * 
+     * @param context
+     * @param key
+     * @return if null, then return ""
+     */
     public static String getPropertyNotNull(Context context, String key) {
         String value = context.getProperty(key);
         return value == null ? "" : value;

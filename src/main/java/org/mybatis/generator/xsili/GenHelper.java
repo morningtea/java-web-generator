@@ -49,9 +49,15 @@ public class GenHelper {
         return getFieldByName(introspectedTable, fieldName);
     }
     
+    /**
+     * 
+     * @param introspectedTable
+     * @param fieldName 允许为空, 为空则返回null
+     * @return
+     */
     private static IntrospectedColumn getFieldByName(IntrospectedTable introspectedTable, String fieldName) {
         if (StringUtils.isBlank(fieldName)) {
-            throw new RuntimeException("param fieldName is null");
+            return null;
         }
 
         for (IntrospectedColumn column : introspectedTable.getAllColumns()) {
