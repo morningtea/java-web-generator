@@ -26,7 +26,7 @@ import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.api.dom.java.PrimitiveTypeWrapper;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
-import org.mybatis.generator.xsili.Constants;
+import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -89,9 +89,8 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
                                        IntrospectedColumn introspectedColumn,
                                        IntrospectedTable introspectedTable,
                                        ModelClassType modelClassType) {
-        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
-        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
-
+        String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
+        String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
         
         if (PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn)) {// 主键
             topLevelClass.addImportedType(ANNOTATION_CLASS_ID);
@@ -108,10 +107,10 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
                 field.addAnnotation("@" + ANNOTATION_CLASS_GENERATED_VALUE.getShortName()
                                     + "(strategy = GenerationType.AUTO)");
             }
-        } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {// 创建日期
+        } else if (createdTimeField.equals(introspectedColumn.getJavaProperty())) {// 创建日期
             topLevelClass.addImportedType(ANNOTATION_CLASS_COLUMN);
             field.addAnnotation("@" + ANNOTATION_CLASS_COLUMN.getShortName() + "(nullable = false, updatable = false)");
-        } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {// 更新日期
+        } else if (updatedTimeField.equals(introspectedColumn.getJavaProperty())) {// 更新日期
             topLevelClass.addImportedType(ANNOTATION_CLASS_COLUMN);
             field.addAnnotation("@" + ANNOTATION_CLASS_COLUMN.getShortName() + "(nullable = false)");
         } else if (!introspectedColumn.isNullable()) {// 非空

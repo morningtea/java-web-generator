@@ -8,12 +8,12 @@
 	<!-- defaultModelType: flat hierarchical conditional -->
 	<context id="MySqlTables" targetRuntime="MyBatis3" defaultModelType="flat">
 		<!-- 扩展配置 -->
-		<property name="createdDateName" value="createdDate"/>
-		<property name="updatedDateName" value="updatedDate"/>
+		<property name="createdTimeField" value="createdDate"/>
+		<property name="updatedTimeField" value="updatedDate"/>
 		<!-- 标识逻辑删除的字段 -->
-		<property name="logicDeletedName" value="isDeleted"/>
+		<property name="logicDeletedField" value="isDeleted"/>
 		<!-- 标识当前记录所有者的字段 -->
-		<property name="ownerName" value="userId"/>
+		<property name="ownerField" value="userId"/>
 		<!-- 选填, 业务异常 -->
 		<property name="businessExceptionQualifiedName" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException"/>
 		

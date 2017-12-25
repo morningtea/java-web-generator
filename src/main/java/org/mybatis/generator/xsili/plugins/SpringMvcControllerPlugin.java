@@ -16,7 +16,6 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -253,8 +252,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
 
         // 添加方法参数
-        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
-        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
+        String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
         List<Field> fields = new ArrayList<>();
         for (TopLevelClass modelClass : modelClasses) {
             fields.addAll(modelClass.getFields());
@@ -264,8 +263,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
             // 排除主键, 创建时间, 更新时间
-            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdDateName.equals(javaProperty)
-                && !updatedDateName.equals(javaProperty)) {
+            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdTimeField.equals(javaProperty)
+                && !updatedTimeField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
@@ -331,8 +330,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         List<Parameter> keyParameters = addKeyParameters(method, primaryKeyColumns);
 
         // 添加方法参数
-        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
-        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
+        String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
         List<Field> fields = new ArrayList<>();
         for (TopLevelClass modelClass : modelClasses) {
             fields.addAll(modelClass.getFields());
@@ -342,7 +341,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
-            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdDateName.equals(javaProperty) && !updatedDateName.equals(javaProperty)) {
+            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdTimeField.equals(javaProperty) && !updatedTimeField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
@@ -377,7 +376,6 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             // checkOwner
             method.addBodyLine("// 校验所有者");
             method.addBodyLine("super.checkOwner(" + PluginUtils.generateGetterCall(modelParamName, ownerColumn.getJavaProperty(), null, false) + ");");
-            method.addBodyLine("");
         }
         
         // 调用Service

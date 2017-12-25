@@ -17,7 +17,6 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.testplugins.Jpa2RepositoryTestPlugin;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
@@ -269,8 +268,8 @@ public class ServicePlugin extends PluginAdapter {
         method.setReturnType(allFieldModelType);
         method.addParameter(new Parameter(allFieldModelType, modelParamName));
 
-        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
-        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
+        String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
         
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
@@ -283,12 +282,12 @@ public class ServicePlugin extends PluginAdapter {
                     String params = idGeneratorType.getShortName() + ".generateId()";
                     method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, introspectedColumn.getJavaProperty(), params, true));
                 }
-            } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {
+            } else if (createdTimeField.equals(introspectedColumn.getJavaProperty())) {
                 serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdDateName) + "(new Date());");
-            } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdTimeField) + "(new Date());");
+            } else if (updatedTimeField.equals(introspectedColumn.getJavaProperty())) {
                 serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedTimeField) + "(new Date());");
             }
         }
         
@@ -327,16 +326,16 @@ public class ServicePlugin extends PluginAdapter {
         method.setReturnType(allFieldModelType);
         method.addParameter(new Parameter(allFieldModelType, modelParamName));
 
-        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             // mysql date introspectedColumn.isJDBCDateColumn()
             // mysql time introspectedColumn.isJDBCTimeColumn()
             // mysql dateTime ??
 
-            if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
+            if (updatedTimeField.equals(introspectedColumn.getJavaProperty())) {
                 serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedTimeField) + "(new Date());");
             }
         }
         

@@ -34,7 +34,6 @@ import org.mybatis.generator.codegen.AbstractXmlGenerator;
 import org.mybatis.generator.codegen.mybatis3.javamapper.elements.AbstractJavaMapperMethodGenerator;
 import org.mybatis.generator.codegen.mybatis3.javamapper.elements.SelectByExampleWithoutBLOBsMethodGenerator;
 import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.xsili.Constants;
 import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
@@ -117,9 +116,9 @@ public class RepositoryGenerator extends AbstractJavaClientGenerator {
             hql.append(" set ").append(logicDeletedColumn.getJavaProperty() + " = ?").append(keyColumns.size() + 1);
             // 更新时间
             Parameter updatedDateParameter = null;
-            String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+            String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
             for (IntrospectedColumn updatedDateColumn : introspectedTable.getAllColumns()) {
-                if (updatedDateName.equals(updatedDateColumn.getJavaProperty())) {
+                if (updatedTimeField.equals(updatedDateColumn.getJavaProperty())) {
                     hql.append(", ").append(updatedDateColumn.getJavaProperty() + " = ?").append(keyColumns.size() + 2);
                     
                     interfaze.addImportedType(updatedDateColumn.getFullyQualifiedJavaType());

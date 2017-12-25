@@ -34,7 +34,7 @@ public class GenHelper {
      * @return maybe null
      */
     public static IntrospectedColumn getLogicDeletedField(IntrospectedTable introspectedTable) {
-        String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_LOGIC_DELETED_NAME);
+        String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_LOGIC_DELETED_FIELD);
         return getFieldByName(introspectedTable, fieldName);
     }
     
@@ -45,7 +45,7 @@ public class GenHelper {
      * @return maybe null
      */
     public static IntrospectedColumn getOwnerField(IntrospectedTable introspectedTable) {
-        String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_OWNER_NAME);
+        String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_OWNER_FIELD);
         return getFieldByName(introspectedTable, fieldName);
     }
     
@@ -60,6 +60,14 @@ public class GenHelper {
             }
         }
         return null;
+    }
+
+    public static String getCreatedTimeField(IntrospectedTable introspectedTable) {
+        return PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_CREATED_TIME_FIELD);
+    }
+
+    public static String getUpdatedTimeField(IntrospectedTable introspectedTable) {
+        return PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_UPDATED_TIME_FIELD);
     }
 
     public static FullyQualifiedJavaType getBusinessExceptionType(Context context) {

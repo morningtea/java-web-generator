@@ -15,7 +15,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
-import org.mybatis.generator.xsili.Constants;
+import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
@@ -138,8 +138,8 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
         method.addBodyLine(modelWithBLOBsType.getShortName() + " " + modelParamName + " = new "
                            + modelWithBLOBsType.getShortName() + "();");
 
-        String createdDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_CREATED_DATE_NAME);
-        String updatedDateName = PluginUtils.getPropertyNotNull(getContext(), Constants.KEY_UPDATED_DATE_NAME);
+        String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
+        String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
         
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
@@ -160,12 +160,12 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
                     }
                     method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, introspectedColumn.getJavaProperty(), params, true));
                 }
-            } else if (createdDateName.equals(introspectedColumn.getJavaProperty())) {
+            } else if (createdTimeField.equals(introspectedColumn.getJavaProperty())) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdDateName) + "(new Date());");
-            } else if (updatedDateName.equals(introspectedColumn.getJavaProperty())) {
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdTimeField) + "(new Date());");
+            } else if (updatedTimeField.equals(introspectedColumn.getJavaProperty())) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedDateName) + "(new Date());");
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedTimeField) + "(new Date());");
             } else if (introspectedColumn.isStringColumn()) {
                 String javaProperty = introspectedColumn.getJavaProperty();
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(\"" + javaProperty + "\");");
