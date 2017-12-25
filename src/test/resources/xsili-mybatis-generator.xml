@@ -10,6 +10,8 @@
 		<!-- 扩展配置 -->
 		<property name="createdDateName" value="createdDate"/>
 		<property name="updatedDateName" value="updatedDate"/>
+		<!-- 标识逻辑删除的字段 -->
+		<property name="logicDeletedName" value="isDeleted"/>
 		<!-- 选填, 业务异常 -->
 		<property name="businessExceptionQualifiedName" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException"/>
 		

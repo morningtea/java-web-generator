@@ -17,6 +17,7 @@ import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.xsili.Constants;
+import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -420,16 +421,13 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
         
         // 调用Service
-//        method.addBodyLine("boolean successful = this." + getService() + "delete(" + params + ");");
-//        method.addBodyLine("if (!successful) {");
-//        method.addBodyLine("return super.error(\"记录不存在或已被删除\");");
-//        method.addBodyLine("} else {");
-//        method.addBodyLine("return super.success();");
-//        method.addBodyLine("}");
-        
-        method.addBodyLine("this." + getService() + "delete(" + keyParams + ");");
+        if (GenHelper.hasLogicDeletedField(introspectedTable)) {
+            method.addBodyLine("this." + getService() + "deleteLogically(" + keyParams + ");");
+        } else {
+            method.addBodyLine("this." + getService() + "deletePhysically(" + keyParams + ");");
+        }
         method.addBodyLine("return super.success();");
-        
+
         return method;
     }
 

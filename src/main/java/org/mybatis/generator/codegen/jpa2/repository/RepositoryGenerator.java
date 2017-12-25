@@ -89,6 +89,21 @@ public class RepositoryGenerator extends AbstractJavaClientGenerator {
 
         // 添加方法
         // 逻辑删除方法
+//        addUpdateDeleted(interfaze, modelType);
+        
+        // TODO 添加 listWithoutBLOBs
+        // addSelectByExampleWithoutBLOBsMethod(interfaze);
+
+        List<CompilationUnit> answer = new ArrayList<CompilationUnit>();
+        if (context.getPlugins().clientGenerated(interfaze, null, introspectedTable)) {
+            answer.add(interfaze);
+        }
+
+        return answer;
+    }
+    
+    @SuppressWarnings("unused")
+    private void addUpdateDeleted(Interface interfaze, FullyQualifiedJavaType modelType) {
         IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
         if(logicDeletedColumn != null) {
             Method updateDeletedMethod = new Method();
@@ -133,16 +148,6 @@ public class RepositoryGenerator extends AbstractJavaClientGenerator {
             
             interfaze.addMethod(updateDeletedMethod);
         }
-        
-        // TODO 添加 listWithoutBLOBs
-        // addSelectByExampleWithoutBLOBsMethod(interfaze);
-
-        List<CompilationUnit> answer = new ArrayList<CompilationUnit>();
-        if (context.getPlugins().clientGenerated(interfaze, null, introspectedTable)) {
-            answer.add(interfaze);
-        }
-
-        return answer;
     }
 
     protected void addSelectByExampleWithoutBLOBsMethod(Interface interfaze) {

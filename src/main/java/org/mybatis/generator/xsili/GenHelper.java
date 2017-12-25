@@ -9,7 +9,6 @@ import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
 import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.config.Context;
-import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
  * @author 叶鹏
@@ -34,9 +33,26 @@ public class GenHelper {
      * @return maybe null
      */
     public static IntrospectedColumn getLogicDeletedField(IntrospectedTable introspectedTable) {
-        String logicDeletedName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_LOGIC_DELETED_NAME);
+        return getFieldByName(introspectedTable, Constants.KEY_LOGIC_DELETED_NAME);
+    }
+    
+    /**
+     * 获取逻辑删除列
+     * 
+     * @param introspectedTable
+     * @return maybe null
+     */
+    public static IntrospectedColumn getOwnerField(IntrospectedTable introspectedTable) {
+        return getFieldByName(introspectedTable, Constants.KEY_OWNER_NAME);
+    }
+    
+    private static IntrospectedColumn getFieldByName(IntrospectedTable introspectedTable, String fieldName) {
+        if (StringUtils.isBlank(fieldName)) {
+            throw new RuntimeException("param fieldName is null");
+        }
+
         for (IntrospectedColumn column : introspectedTable.getAllColumns()) {
-            if (column.getJavaProperty().equals(logicDeletedName)) {
+            if (column.getJavaProperty().equals(fieldName)) {
                 return column;
             }
         }

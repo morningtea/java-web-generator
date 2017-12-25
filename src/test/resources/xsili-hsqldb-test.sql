@@ -10,7 +10,7 @@ CREATE TABLE t_table1 (
 );
 comment on table t_table1 is '测试1';
 comment on column t_table1.id is '主键';
-comment on column t_table1.audit_status is '{enum: UNAUDITED(待审核), AUDIT_PASS(审核通过), AUDIT_NOT_PASS(审核未通过)}';
+comment on column t_table1.audit_status is '审核状态 {enum: UNAUDITED(待审核), AUDIT_PASS(审核通过), AUDIT_NOT_PASS(审核未通过)}';
 comment on column t_table1.title is '标题';
 comment on column t_table1.description is '描述';
 comment on column t_table1.is_deleted is '删除状态';

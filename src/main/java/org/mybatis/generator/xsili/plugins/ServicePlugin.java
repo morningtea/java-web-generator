@@ -173,13 +173,25 @@ public class ServicePlugin extends PluginAdapter {
             serviceImplClass.addMethod(updateSelectiveMethodImpl);
         }
 
-        // delete
-        Method deleteMethod = deleteEntity(introspectedTable);
-        deleteMethod.removeBodyLines();
-        serviceInterface.addMethod(deleteMethod);
-        Method deleteMethodImpl = deleteEntity(introspectedTable);
-        deleteMethodImpl.addAnnotation("@Override");
-        serviceImplClass.addMethod(deleteMethodImpl);
+        // deletePhysically
+        Method deletePhysicallyMethod = deletePhysicallyEntity(introspectedTable);
+        deletePhysicallyMethod.removeBodyLines();
+        serviceInterface.addMethod(deletePhysicallyMethod);
+        Method deletePhysicallyMethodImpl = deletePhysicallyEntity(introspectedTable);
+        deletePhysicallyMethodImpl.addAnnotation("@Override");
+        serviceImplClass.addMethod(deletePhysicallyMethodImpl);
+        
+        // deleteLogically
+        Method deleteLogicallyMethod = deleteLogicallyEntity(introspectedTable, serviceImplClass);
+        if (deleteLogicallyMethod != null) {
+            deleteLogicallyMethod.removeBodyLines();
+            serviceInterface.addMethod(deleteLogicallyMethod);
+        }
+        Method deleteLogicallyMethodImpl = deleteLogicallyEntity(introspectedTable, serviceImplClass);
+        if (deleteLogicallyMethodImpl != null) {
+            deleteLogicallyMethodImpl.addAnnotation("@Override");
+            serviceImplClass.addMethod(deleteLogicallyMethodImpl);
+        }
 
         // get
         Method getMethod = getEntity(introspectedTable);
@@ -190,10 +202,10 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplClass.addMethod(getMethodImpl);
 
         // list
-        Method listMethod = listEntity(serviceImplClass, introspectedTable);
+        Method listMethod = listEntity(introspectedTable, serviceImplClass);
         listMethod.removeBodyLines();
         serviceInterface.addMethod(listMethod);
-        Method listMethodImpl = listEntity(serviceImplClass, introspectedTable);
+        Method listMethodImpl = listEntity(introspectedTable, serviceImplClass);
         listMethodImpl.addAnnotation("@Override");
         serviceImplClass.addMethod(listMethodImpl);
 
@@ -205,6 +217,7 @@ public class ServicePlugin extends PluginAdapter {
         GeneratedJavaFile implFile = new GeneratedJavaFile(serviceImplClass, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
         files.add(implFile);
     }
+    
 
     /**
      * 导入需要的类
@@ -239,6 +252,7 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplClass.addImportedType(annotationResource);
     }
 
+    
     /**
      * add
      * 
@@ -291,6 +305,7 @@ public class ServicePlugin extends PluginAdapter {
         
         return method;
     }
+    
 
     /**
      * update
@@ -345,18 +360,75 @@ public class ServicePlugin extends PluginAdapter {
 
         return method;
     }
+    
+    
+    /**
+     * 如果包含逻辑删除列, 则返回逻辑删除的方法, 否则返回null
+     * 
+     * @param introspectedTable
+     * @return maybe null
+     */
+    private Method deleteLogicallyEntity(IntrospectedTable introspectedTable, TopLevelClass serviceImplClass) {
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
+        if(logicDeletedColumn == null) {
+            return null;
+        }
+        
+        Method method = new Method();
+        method.setName("deleteLogically");
+        method.setVisibility(JavaVisibility.PUBLIC);
+        method.addJavaDocLine("/** 逻辑删除 */");
+        
+        // 导入依赖类
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Optional"));
+        
+        List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+        for (Parameter keyParameter : keyParameterList) {
+            method.addParameter(keyParameter);
+        }
+        String params = PluginUtils.getCallParameters(keyParameterList);
+        
+        // 填充key
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            String keyParams = prepareCallByKey(introspectedTable, method, method.getParameters());
+            if(StringUtils.isNotBlank(keyParams)) {
+                params = keyParams;
+            }
+        }
+        
+        String modelParamName = "exist";
+        if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            method.addBodyLine("Optional<" + allFieldModelType.getShortName() + "> " + modelParamName + " = this."
+                               + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
+            method.addBodyLine(modelParamName + ".ifPresent((v) -> {");
+            method.addBodyLine("v.setIsDeleted(true);");
+            method.addBodyLine("this.update(v);");
+            method.addBodyLine("});");
+        } else {
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getMapper()
+                               + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
+            method.addBodyLine("if(" + modelParamName + " != null) {");
+            method.addBodyLine(modelParamName + ".setIsDeleted(true);");
+            method.addBodyLine("this.update(" + modelParamName + ");");
+            method.addBodyLine("}");
+        }
+        
+        return method;
+    }
+    
+    
 
     /**
-     * delete
+     * deletePhysically
      * 
      * @param introspectedTable
      * @return
      */
-    private Method deleteEntity(IntrospectedTable introspectedTable) {
+    private Method deletePhysicallyEntity(IntrospectedTable introspectedTable) {
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
-        method.setName("delete");
-        // method.setReturnType(FullyQualifiedJavaType.getBooleanPrimitiveInstance());
+        method.setName("deletePhysically");
+        method.addJavaDocLine("/** 物理删除 */");
 
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
         for (Parameter keyParameter : keyParameterList) {
@@ -375,6 +447,7 @@ public class ServicePlugin extends PluginAdapter {
         return method;
     }
 
+    
     /**
      * get
      * 
@@ -404,6 +477,7 @@ public class ServicePlugin extends PluginAdapter {
         }
         return method;
     }
+    
 
     /**
      * list
@@ -412,13 +486,14 @@ public class ServicePlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method listEntity(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable) {
+    private Method listEntity(IntrospectedTable introspectedTable, TopLevelClass serviceImplClass) {
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            return listEntityJpa2(serviceImplClass, introspectedTable);
+            return listEntityJpa2(introspectedTable, serviceImplClass);
         } else {
-            return listEntityMybatis(serviceImplClass, introspectedTable);
+            return listEntityMybatis(introspectedTable, serviceImplClass);
         }
     }
+    
     
     /**
      * list mybatis
@@ -427,7 +502,7 @@ public class ServicePlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method listEntityMybatis(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable) {
+    private Method listEntityMybatis(IntrospectedTable introspectedTable, TopLevelClass serviceImplClass) {
         Method method = new Method();
         method.setName("list");
         method.setReturnType(new FullyQualifiedJavaType(pageType.getShortName() + "<" + allFieldModelType.getShortName()
@@ -454,7 +529,7 @@ public class ServicePlugin extends PluginAdapter {
         method.addBodyLine("return " + pageType.getShortName() + ".buildPage(list, criteria);");
         return method;
     }
-
+    
 
     /**
      * list jpa2
@@ -463,7 +538,7 @@ public class ServicePlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method listEntityJpa2(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable) {
+    private Method listEntityJpa2(IntrospectedTable introspectedTable, TopLevelClass serviceImplClass) {
         Method method = new Method();
         method.setName("list");
         method.setReturnType(new FullyQualifiedJavaType(pageType.getShortName() + "<" + allFieldModelType.getShortName()
@@ -499,6 +574,7 @@ public class ServicePlugin extends PluginAdapter {
         
         return method;
     }
+    
 
     /**
      * 添加 LOGGER 字段
@@ -515,6 +591,7 @@ public class ServicePlugin extends PluginAdapter {
         field.setInitializationString("LoggerFactory.getLogger(" + serviceImplClass.getType().getShortName() + ".class)");
         serviceImplClass.addField(field);
     }
+    
 
     /**
      * 添加 Mapper依赖字段
@@ -533,6 +610,7 @@ public class ServicePlugin extends PluginAdapter {
     private String getMapper() {
         return PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()) + ".";
     }
+    
     
     /**
      * 
@@ -568,6 +646,7 @@ public class ServicePlugin extends PluginAdapter {
             throw new IllegalArgumentException("参数type错误, type: " + type);
         }
     }
+    
 
     /**
      * 如果没有生成主键类, 并且是复合主键, 则以allFieldModel填充复合主键, 并返回调用参数<br>
