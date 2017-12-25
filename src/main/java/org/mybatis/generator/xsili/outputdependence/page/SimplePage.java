@@ -71,8 +71,8 @@ public class SimplePage<T> implements Serializable {
         this.totalCount = totalCount;
     }
 
-    public static <T> SimplePage<T> getPage(Page<T> page) {
-        return getPage(page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements());
+    public static <T> SimplePage<T> buildPage(Page<T> page) {
+        return buildPage(page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements());
     }
 
     /**
@@ -81,8 +81,8 @@ public class SimplePage<T> implements Serializable {
      * @param queryParam
      * @return
      */
-    public static <T> SimplePage<T> getPage(List<T> rows, QueryParam queryParam) {
-        return getPage(rows, queryParam.getPage(), queryParam.getLimit(), queryParam.getTotalCount());
+    public static <T> SimplePage<T> buildPage(List<T> rows, QueryParam queryParam) {
+        return buildPage(rows, queryParam.getPage(), queryParam.getLimit(), queryParam.getTotalCount());
     }
 
     /**
@@ -93,7 +93,7 @@ public class SimplePage<T> implements Serializable {
      * @param totalCount 总纪录数
      * @return
      */
-    public static <T> SimplePage<T> getPage(List<T> rows, int pageNum, int pageSize, long totalCount) {
+    public static <T> SimplePage<T> buildPage(List<T> rows, int pageNum, int pageSize, long totalCount) {
         SimplePage<T> simplePage = new SimplePage<T>();
         simplePage.setRows(rows);
         simplePage.setPageNum(pageNum);
@@ -108,7 +108,7 @@ public class SimplePage<T> implements Serializable {
      * 
      * @return
      */
-    public static <T> SimplePage<T> emptyPage() {
+    public static <T> SimplePage<T> buildEmptyPage() {
         SimplePage<T> simplePage = new SimplePage<T>();
         simplePage.setRows(new ArrayList<T>());
         simplePage.setPageNum(0);
@@ -124,7 +124,7 @@ public class SimplePage<T> implements Serializable {
      * @param rows
      * @return
      */
-    public static <T> SimplePage<T> singlePage(List<T> rows) {
+    public static <T> SimplePage<T> buildSinglePage(List<T> rows) {
         SimplePage<T> simplePage = new SimplePage<T>();
         simplePage.setRows(rows);
         simplePage.setPageNum(0);

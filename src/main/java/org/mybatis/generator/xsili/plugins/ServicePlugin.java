@@ -451,7 +451,7 @@ public class ServicePlugin extends PluginAdapter {
 
         method.addBodyLine("List<" + allFieldModelType.getShortName() + "> list = " + getMapper()
                            + "selectByExample(criteria);");
-        method.addBodyLine("return " + pageType.getShortName() + ".getPage(list, criteria);");
+        method.addBodyLine("return " + pageType.getShortName() + ".buildPage(list, criteria);");
         return method;
     }
 
@@ -495,7 +495,7 @@ public class ServicePlugin extends PluginAdapter {
         method.addBodyLine("page = " + getMapper() + "findAll(pageable);");
         method.addBodyLine("}");
         
-        method.addBodyLine("return " + pageType.getShortName() + ".getPage(page);");
+        method.addBodyLine("return " + pageType.getShortName() + ".buildPage(page);");
         
         return method;
     }
