@@ -350,19 +350,27 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
 
         // 填充参数
-        method.addBodyLine("// 填充参数");
         if(isSelective && introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            // 填充key
+            // 查询记录
+            method.addBodyLine("// 查询记录");
             String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
             method.addBodyLine("if(" + modelParamName + " == null) {");
             method.addBodyLine("return super.error(\"记录不存在\");");
             method.addBodyLine("}");
+            
+            method.addBodyLine("");
+            method.addBodyLine("// 填充参数");
+            // 填充参数 notKey
+            PluginUtils.generateModelSetterBodyLineNullVerify(modelParamName, method, notKeyParameters, topLevelClass);
         } else {
+            method.addBodyLine("// 填充参数");
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new " + allFieldModelType.getShortName() + "();");
+            // 填充参数 key
             PluginUtils.generateModelSetterBodyLine(modelParamName, method, keyParameters);
+            // 填充参数 notKey
+            PluginUtils.generateModelSetterBodyLine(modelParamName, method, notKeyParameters);
         }
-        PluginUtils.generateModelSetterBodyLine(modelParamName, method, notKeyParameters);
 
         // 校验参数
         if (validatorUtilType != null) {

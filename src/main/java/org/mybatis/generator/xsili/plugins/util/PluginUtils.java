@@ -18,6 +18,8 @@ public class PluginUtils {
 
     // 如果生成主键类, 该常量值会被controller引用, 出现在方法参数上
     public static final String PRIMARY_KEY_PARAMETER_NAME = "primaryKey";
+    
+    public static final FullyQualifiedJavaType STRING_UTILS_TYPE = new FullyQualifiedJavaType("org.apache.commons.lang3.StringUtils");
 
     /**
      * 
@@ -116,16 +118,38 @@ public class PluginUtils {
     }
 
     /**
+     * 根据method参数填充model.setXxx代码行(同时生成校验parameter是否为空的代码行) 
+     * 
+     * @param modelParamName
+     * @param method
+     * @param parameters
+     */
+    public static void generateModelSetterBodyLineNullVerify(String modelParamName, Method method, List<Parameter> parameters, TopLevelClass topLevelClass) {
+        for (Parameter parameter : parameters) {
+            if (parameter.getType().getShortName().equals("String")) {
+                topLevelClass.addImportedType(STRING_UTILS_TYPE);
+                method.addBodyLine("if(StringUtils.isNotEmpty(" + parameter.getName() + ")) {");
+            } else {
+                method.addBodyLine("if(" + parameter.getName() + " != null) {");
+            }
+            method.addBodyLine(generateSetterCall(modelParamName, parameter.getName(), parameter.getName(), true));
+            method.addBodyLine("}");
+        }
+    }
+    
+    /**
      * 根据method参数填充model.setXxx代码行
      * 
      * @param modelParamName
      * @param method
+     * @param parameters
      */
     public static void generateModelSetterBodyLine(String modelParamName, Method method, List<Parameter> parameters) {
         for (Parameter parameter : parameters) {
             method.addBodyLine(generateSetterCall(modelParamName, parameter.getName(), parameter.getName(), true));
         }
     }
+    
     
     /**
      * 优先返回fields.field字段类型
