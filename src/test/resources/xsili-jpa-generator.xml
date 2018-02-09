@@ -8,8 +8,8 @@
 	<!-- defaultModelType: flat hierarchical conditional -->
 	<context id="MySqlTables" targetRuntime="Jpa2" defaultModelType="flat">
 		<!-- 扩展配置 -->
-		<property name="createdTimeField" value="createdDate"/>
-		<property name="updatedTimeField" value="updatedDate"/>
+		<property name="createdTimeField" value="gmt_create"/>
+		<property name="updatedTimeField" value="gmt_modified"/>
 		<!-- 标识逻辑删除的字段 -->
 		<property name="logicDeletedField" value="isDeleted"/>
 		<!-- 标识当前记录所有者的字段 -->
