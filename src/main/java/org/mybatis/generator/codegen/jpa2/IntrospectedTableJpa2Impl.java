@@ -130,15 +130,12 @@ public class IntrospectedTableJpa2Impl extends IntrospectedTable {
         for (AbstractJavaGenerator javaGenerator : javaModelGenerators) {
             List<CompilationUnit> compilationUnits = javaGenerator.getCompilationUnits();
             for (CompilationUnit compilationUnit : compilationUnits) {
-                if(compilationUnit.isJavaEnumeration()) {
-                    // 生成enum类
-                    GeneratedJavaFile gjf = new GeneratedJavaFile(compilationUnit, context.getJavaModelGeneratorConfiguration().getTargetProject(), context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
-                    answer.add(gjf);
-                } else {
-                    // 生成model类
-                    GeneratedJavaFile gjf = new GeneratedJavaFile(compilationUnit, context.getJavaModelGeneratorConfiguration().getTargetProject(), context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
-                    answer.add(gjf);
-                }
+                GeneratedJavaFile gjf = new GeneratedJavaFile(compilationUnit,
+                    context.getJavaModelGeneratorConfiguration()
+                            .getTargetProject(),
+                            context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING),
+                            context.getJavaFormatter());
+                answer.add(gjf);
             }
         }
 
