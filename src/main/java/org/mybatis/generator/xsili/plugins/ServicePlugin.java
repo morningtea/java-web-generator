@@ -378,9 +378,6 @@ public class ServicePlugin extends PluginAdapter {
         method.setVisibility(JavaVisibility.PUBLIC);
         method.addJavaDocLine("/** 逻辑删除 */");
         
-        // 导入依赖类
-        serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Optional"));
-        
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
         for (Parameter keyParameter : keyParameterList) {
             method.addParameter(keyParameter);
@@ -389,7 +386,7 @@ public class ServicePlugin extends PluginAdapter {
         
         // 填充key
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            String keyParams = prepareCallByKey(introspectedTable, method, method.getParameters());
+            String keyParams = prepareCallByEntityAsKey(introspectedTable, method, method.getParameters());
             if(StringUtils.isNotBlank(keyParams)) {
                 params = keyParams;
             }
@@ -397,17 +394,19 @@ public class ServicePlugin extends PluginAdapter {
         
         String modelParamName = "exist";
         if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            // 导入依赖类
+            serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Optional"));
             method.addBodyLine("Optional<" + allFieldModelType.getShortName() + "> " + modelParamName + " = this."
                                + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
             method.addBodyLine(modelParamName + ".ifPresent((v) -> {");
-            method.addBodyLine("v.setIsDeleted(true);");
+            method.addBodyLine("v.set" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "(true);");
             method.addBodyLine("this.update(v);");
             method.addBodyLine("});");
         } else {
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getMapper()
                                + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
             method.addBodyLine("if(" + modelParamName + " != null) {");
-            method.addBodyLine(modelParamName + ".setIsDeleted(true);");
+            method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "(true);");
             method.addBodyLine("this.update(" + modelParamName + ");");
             method.addBodyLine("}");
         }
@@ -437,7 +436,7 @@ public class ServicePlugin extends PluginAdapter {
         
         // 填充key
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            String keyParams = prepareCallByKey(introspectedTable, method, method.getParameters());
+            String keyParams = prepareCallByEntityAsKey(introspectedTable, method, method.getParameters());
             if(StringUtils.isNotBlank(keyParams)) {
                 params = keyParams;
             }
@@ -466,7 +465,7 @@ public class ServicePlugin extends PluginAdapter {
         String params = PluginUtils.getCallParameters(keyParameterList);
 
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            String keyParams = prepareCallByKey(introspectedTable, method, method.getParameters());
+            String keyParams = prepareCallByEntityAsKey(introspectedTable, method, method.getParameters());
             if(StringUtils.isNotBlank(keyParams)) {
                 params = keyParams;
             }
@@ -520,8 +519,15 @@ public class ServicePlugin extends PluginAdapter {
                            + "();");
         method.addBodyLine("criteria.setPage(pageNum);");
         method.addBodyLine("criteria.setLimit(pageSize);");
-        method.addBodyLine("@SuppressWarnings(\"unused\")");
-        method.addBodyLine(modelSubCriteriaType.getShortName() + " cri = criteria.createCriteria();");
+        
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
+        if(logicDeletedColumn == null) {
+            method.addBodyLine("@SuppressWarnings(\"unused\")");
+            method.addBodyLine(modelSubCriteriaType.getShortName() + " cri = criteria.createCriteria();");
+        } else {
+            method.addBodyLine(modelSubCriteriaType.getShortName() + " cri = criteria.createCriteria();");
+            method.addBodyLine("cri.and" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "EqualTo(false);");
+        }
 
         method.addBodyLine("List<" + allFieldModelType.getShortName() + "> list = " + getMapper()
                            + "selectByExample(criteria);");
@@ -557,6 +563,8 @@ public class ServicePlugin extends PluginAdapter {
         
         method.addBodyLine("// 通过ExpressionUtils构建Predicate查询条件");
         method.addBodyLine("Predicate predicate = null;");
+        // TODO 过滤isDeleted的数据
+        // predicate = ExpressionUtils.and(predicate, qArticle.isDeleted.eq(false));
         
         method.addBodyLine("");
         method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, new Sort(Direction.DESC, \"id\"));");
@@ -649,12 +657,12 @@ public class ServicePlugin extends PluginAdapter {
 
     /**
      * 如果没有生成主键类, 并且是复合主键, 则以allFieldModel填充复合主键, 并返回调用参数<br>
-     * {@link Jpa2RepositoryTestPlugin#prepareCallByKey}
+     * {@link Jpa2RepositoryTestPlugin#prepareCallByEntityAsKey}
      * @param introspectedTable
      * @param caller
      * @return
      */
-    private String prepareCallByKey(IntrospectedTable introspectedTable, Method caller, List<Parameter> keyParameters) {
+    private String prepareCallByEntityAsKey(IntrospectedTable introspectedTable, Method caller, List<Parameter> keyParameters) {
         // 检查是否包含主键
         PluginUtils.checkPrimaryKey(introspectedTable);
         

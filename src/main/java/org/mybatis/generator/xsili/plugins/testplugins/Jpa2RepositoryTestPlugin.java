@@ -97,7 +97,6 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
 
 //        baseModelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
         allFieldModelType = introspectedTable.getRules().calculateAllFieldsClass();
-        
         mapperType = new FullyQualifiedJavaType(introspectedTable.getMyBatis3JavaMapperType());
         mapperTestType = new FullyQualifiedJavaType(targetPackage + "." + tableName + "RepositoryTest");
 
@@ -163,7 +162,7 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
                         // 字符串以外的类型, 设置为null, 需要用户手动修改
                         params = "null";
                     }
-                    method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, introspectedColumn.getJavaProperty(), params, true));
+                    method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, javaProperty, params, true));
                 }
             } else if (createdTimeField.equals(javaProperty)) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
@@ -172,16 +171,7 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedTimeField) + "(new Date());");
             } else if (introspectedColumn.isStringColumn()) {
-                String param = "";
-                FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
-                if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
-                    topLevelClass.addImportedType(parameterType);
-                    param = parameterType.getShortName() + ".values()[0]";
-                } else {
-                    param = "\"" + javaProperty + "\"";
-                }
-
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(" + param + ");");
+                setStringOrEnumField(introspectedColumn, fields, topLevelClass, method, modelParamName);
             }
         }
 
@@ -193,18 +183,8 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !javaProperty.toUpperCase().equals("ID")) {
-                String param = "";
-                FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
-                if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
-                    topLevelClass.addImportedType(parameterType);
-                    param = parameterType.getShortName() + ".values()[0]";
-                } else {
-                    param = "\"" + PluginUtils.upperCaseFirstLetter(javaProperty) + "\"";
-                }
-
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(" + param + ");");
+                setStringOrEnumField(introspectedColumn, fields, topLevelClass, method, modelParamName);
             }
-            
             if (introspectedColumn.isJDBCDateColumn() || introspectedColumn.isJDBCTimeColumn()) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(new Date());");
@@ -230,28 +210,29 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
 
         method.addBodyLine("");
         method.addBodyLine("// findById Test");
-        // 填充key
-        String key = "";
-        List<Parameter> keyParameterList = new ArrayList<>();
+        // 构建调用方法的key参数
+        String keyCallParams = "";
         if (introspectedTable.getRules().generatePrimaryKeyClass()) {
             FullyQualifiedJavaType keyType = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
-            key = "(" + keyType.getShortName() + ") " + modelParamName;
+            keyCallParams = "(" + keyType.getShortName() + ") " + modelParamName;
         } else {
-            keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
-            for (Parameter keyParameter : keyParameterList) {
-                String keyPart = modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(keyParameter.getName()) + "()";
-                key += keyPart + ", ";
+            List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
+            // 复合主键
+            String entityAsKey = prepareCallByEntityAsKey(introspectedTable, method, keyParameterList);
+            if(StringUtils.isNotBlank(entityAsKey)) {
+                keyCallParams = entityAsKey;
+            } else {
+                for (Parameter keyParameter : keyParameterList) {
+                    String keyPart = modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(keyParameter.getName()) + "()";
+                    keyCallParams += keyPart + ", ";
+                }
+                if(keyCallParams.length() > 0) {
+                    keyCallParams = keyCallParams.substring(0, keyCallParams.lastIndexOf(","));
+                }
             }
-            if(key.length() > 0) {
-                key = key.substring(0, key.lastIndexOf(","));
-            }
-        }
-        String keyParams = prepareCallByKey(introspectedTable, method, keyParameterList);
-        if(StringUtils.isNotBlank(keyParams)) {
-            key = keyParams;
         }
         
-        method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "findById(" + key + ").get().getId());");
+        method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "findById(" + keyCallParams + ").get().getId());");
 
         method.addBodyLine("");
         method.addBodyLine("// findAll Test");
@@ -271,10 +252,38 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
 
         method.addBodyLine("");
         method.addBodyLine("// deleteById Test");
-        method.addBodyLine(getMapper() + "deleteById(" + key + ");");
+        method.addBodyLine(getMapper() + "deleteById(" + keyCallParams + ");");
         method.addBodyLine("connt = " + getMapper() + "count();");
         method.addBodyLine("assertEquals(0, connt);");
         return method;
+    }
+    
+    /**
+     * 代码生成 - table1.setAuditStatus(AuditStatusEnum.values()[0]);
+     * 
+     * @param introspectedColumn
+     * @param fields
+     * @param topLevelClass
+     * @param method
+     * @param modelParamName
+     */
+    private void setStringOrEnumField(IntrospectedColumn introspectedColumn,
+                               List<Field> fields,
+                               TopLevelClass topLevelClass,
+                               Method method,
+                               String modelParamName) {
+        String javaProperty = introspectedColumn.getJavaProperty();
+        
+        String param = "";
+        FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
+        if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
+            topLevelClass.addImportedType(parameterType);
+            param = parameterType.getShortName() + ".values()[0]";
+        } else {
+            param = "\"" + javaProperty + "\"";
+        }
+
+        method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(" + param + ");");
     }
 
     private void addImport(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
@@ -317,12 +326,12 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
     
     /**
      * 如果没有生成主键类, 并且是复合主键, 则以allFieldModel填充复合主键, 并返回调用参数<br>
-     * {@link ServicePlugin#prepareCallByKey}
+     * {@link ServicePlugin#prepareCallByEntityAsKey}
      * @param introspectedTable
      * @param caller
      * @return
      */
-    private String prepareCallByKey(IntrospectedTable introspectedTable, Method caller, List<Parameter> keyParameters) {
+    private String prepareCallByEntityAsKey(IntrospectedTable introspectedTable, Method caller, List<Parameter> keyParameters) {
         // 检查是否包含主键
         PluginUtils.checkPrimaryKey(introspectedTable);
 
