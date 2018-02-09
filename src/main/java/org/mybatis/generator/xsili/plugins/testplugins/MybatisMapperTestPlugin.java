@@ -15,6 +15,7 @@ import org.mybatis.generator.api.dom.java.Method;
 import org.mybatis.generator.api.dom.java.Parameter;
 import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.config.PropertyRegistry;
+import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
 import org.mybatis.generator.xsili.GenHelper;
 import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
@@ -34,11 +35,11 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
 
     private FullyQualifiedJavaType idGeneratorType;
 
-    private FullyQualifiedJavaType modelType;
+    private FullyQualifiedJavaType baseModelType;
     /**
      * 如果有WithBlob, 则modelWithBLOBsType赋值为BlobModel, 否则赋值为BaseModel
      */
-    private FullyQualifiedJavaType modelWithBLOBsType;
+    private FullyQualifiedJavaType allFieldModelType;
     private FullyQualifiedJavaType modelCriteriaType;
     private FullyQualifiedJavaType mapperType;
     private FullyQualifiedJavaType mapperTestType;
@@ -79,10 +80,8 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
         String table = introspectedTable.getBaseRecordType();
         String tableName = table.replaceAll(this.modelPackage + ".", "");
 
-        modelWithBLOBsType = modelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
-        if (introspectedTable.getRules().generateRecordWithBLOBsClass()) {
-            modelWithBLOBsType = new FullyQualifiedJavaType(introspectedTable.getRecordWithBLOBsType());
-        }
+        baseModelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
+        allFieldModelType = introspectedTable.getRules().calculateAllFieldsClass();
         mapperType = new FullyQualifiedJavaType(introspectedTable.getMyBatis3JavaMapperType());
         modelCriteriaType = new FullyQualifiedJavaType(introspectedTable.getExampleType());
         mapperTestType = new FullyQualifiedJavaType(targetPackage + "." + tableName + "MapperTest");
@@ -98,7 +97,7 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
         addMapperField(topLevelClass);
 
         // 添加基础方法
-        topLevelClass.addMethod(addCRUD(topLevelClass, introspectedTable));
+        topLevelClass.addMethod(addCRUD(topLevelClass, introspectedTable, modelClasses));
 
         // 生成文件
         GeneratedJavaFile file = new GeneratedJavaFile(topLevelClass, targetProject, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
@@ -113,36 +112,42 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
      * @param introspectedTable
      * @return
      */
-    private Method addCRUD(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+    private Method addCRUD(TopLevelClass topLevelClass, IntrospectedTable introspectedTable, List<TopLevelClass> modelClasses) {
         Method method = new Method();
         method.addAnnotation("@Test");
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setReturnType(new FullyQualifiedJavaType("void"));
         method.setName("crudTest");
 
-        String modelParamName = PluginUtils.getTypeParamName(modelWithBLOBsType);
-        String key = "";
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+        // 构建调用方法的key参数
+        String keyCallParams = "";
         if (introspectedTable.getRules().generatePrimaryKeyClass()) {
             FullyQualifiedJavaType keyType = new FullyQualifiedJavaType(introspectedTable.getPrimaryKeyType());
-            key = "(" + keyType.getShortName() + ") " + modelParamName;
+            keyCallParams = "(" + keyType.getShortName() + ") " + modelParamName;
         } else {
             List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
             for (Parameter keyParameter : keyParameterList) {
-                key += modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(keyParameter.getName()) + "(), ";
+                keyCallParams += modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(keyParameter.getName()) + "(), ";
             }
-            if(key.length() > 0) {
-                key = key.substring(0, key.lastIndexOf(","));
+            if(keyCallParams.length() > 0) {
+                keyCallParams = keyCallParams.substring(0, keyCallParams.lastIndexOf(","));
             }
         }
 
-        method.addBodyLine(modelWithBLOBsType.getShortName() + " " + modelParamName + " = new "
-                           + modelWithBLOBsType.getShortName() + "();");
+        method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new "
+                           + allFieldModelType.getShortName() + "();");
 
         String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
         String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
+        List<Field> fields = new ArrayList<>();
+        for (TopLevelClass modelClass : modelClasses) {
+            fields.addAll(modelClass.getFields());
+        }
         
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
+            String javaProperty = introspectedColumn.getJavaProperty();
             // 非自增主键, 默认使用UUID
             if (PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn)) {
                 if (!introspectedColumn.isIdentity() && !introspectedColumn.isAutoIncrement()) {
@@ -158,20 +163,18 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
                         // 字符串以外的类型, 设置为null, 需要用户手动修改
                         params = "null";
                     }
-                    method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, introspectedColumn.getJavaProperty(), params, true));
+                    method.addBodyLine(PluginUtils.generateSetterCall(modelParamName, javaProperty, params, true));
                 }
-            } else if (createdTimeField.equals(introspectedColumn.getJavaProperty())) {
+            } else if (createdTimeField.equals(javaProperty)) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(createdTimeField) + "(new Date());");
-            } else if (updatedTimeField.equals(introspectedColumn.getJavaProperty())) {
+            } else if (updatedTimeField.equals(javaProperty)) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedTimeField) + "(new Date());");
             } else if (introspectedColumn.isStringColumn()) {
-                String javaProperty = introspectedColumn.getJavaProperty();
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(\"" + javaProperty + "\");");
+                setStringOrEnumField(introspectedColumn, fields, topLevelClass, method, modelParamName);
             }
         }
-
         method.addBodyLine("");
         method.addBodyLine("// insertRecord Test");
         method.addBodyLine("assertEquals(1, " + getMapper() + "insertSelective(" + modelParamName + "));");
@@ -181,27 +184,34 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String property = introspectedColumn.getJavaProperty();
             if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(\""
-                                   + PluginUtils.upperCaseFirstLetter(property) + "\");");
+                setStringOrEnumField(introspectedColumn, fields, topLevelClass, method, modelParamName);
             }
             if (introspectedColumn.isJDBCDateColumn() || introspectedColumn.isJDBCTimeColumn()) {
                 topLevelClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
-                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property)
-                                   + "(new Date());");
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(property) + "(new Date());");
             }
         }
         method.addBodyLine(getMapper() + "updateByPrimaryKeySelective(" + modelParamName + ");");
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
-            String property = introspectedColumn.getJavaProperty();
-            if (introspectedColumn.isStringColumn() && !property.toUpperCase().equals("ID")) {
-                method.addBodyLine("assertEquals(\"" + PluginUtils.upperCaseFirstLetter(property) + "\","
-                                   + modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(property) + "());");
+            String javaProperty = introspectedColumn.getJavaProperty();
+            if (introspectedColumn.isStringColumn() && !javaProperty.toUpperCase().equals("ID")) {
+                String param = "";
+                FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
+                if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
+                    topLevelClass.addImportedType(parameterType);
+                    param = parameterType.getShortName() + ".values()[0]";
+                } else {
+                    param = "\"" + PluginUtils.upperCaseFirstLetter(javaProperty) + "\"";
+                }
+                
+                method.addBodyLine("assertEquals(" + param + ", "
+                    + modelParamName + ".get" + PluginUtils.upperCaseFirstLetter(javaProperty) + "());");
             }
         }
 
         method.addBodyLine("");
         method.addBodyLine("// selectRecord Test");
-        method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "selectByPrimaryKey(" + key
+        method.addBodyLine("assertEquals(" + modelParamName + ".getId(), " + getMapper() + "selectByPrimaryKey(" + keyCallParams
                            + ").getId());");
 
         method.addBodyLine("");
@@ -209,9 +219,9 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
         method.addBodyLine(modelCriteriaType.getShortName() + " criteria = new " + modelCriteriaType.getShortName()
                            + "();");
         method.addBodyLine("criteria.createCriteria().andIdEqualTo(" + modelParamName + ".getId());");
-        method.addBodyLine("List<" + modelType.getShortName() + "> " + modelType.getShortName() + "s = " + getMapper()
+        method.addBodyLine("List<" + baseModelType.getShortName() + "> " + baseModelType.getShortName() + "s = " + getMapper()
                            + "selectByExample(criteria);");
-        method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
+        method.addBodyLine("assertEquals(1, " + baseModelType.getShortName() + "s.size());");
 
         method.addBodyLine("");
         method.addBodyLine("// countByExample Test");
@@ -222,13 +232,41 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
         method.addBodyLine("// page Test");
         method.addBodyLine("criteria.setPage(1);");
         method.addBodyLine("criteria.setLimit(10);");
-        method.addBodyLine(modelType.getShortName() + "s = " + getMapper() + "selectByExample(criteria);");
-        method.addBodyLine("assertEquals(1, " + modelType.getShortName() + "s.size());");
+        method.addBodyLine(baseModelType.getShortName() + "s = " + getMapper() + "selectByExample(criteria);");
+        method.addBodyLine("assertEquals(1, " + baseModelType.getShortName() + "s.size());");
 
         method.addBodyLine("");
         method.addBodyLine("// deleteRecord Test");
-        method.addBodyLine("assertEquals(1, " + getMapper() + "deleteByPrimaryKey(" + key + "));");
+        method.addBodyLine("assertEquals(1, " + getMapper() + "deleteByPrimaryKey(" + keyCallParams + "));");
         return method;
+    }
+    
+    /**
+     * 代码生成 - table1.setAuditStatus(AuditStatusEnum.values()[0]);
+     * 
+     * @param introspectedColumn
+     * @param fields
+     * @param topLevelClass
+     * @param method
+     * @param modelParamName
+     */
+    private void setStringOrEnumField(IntrospectedColumn introspectedColumn,
+                               List<Field> fields,
+                               TopLevelClass topLevelClass,
+                               Method method,
+                               String modelParamName) {
+        String javaProperty = introspectedColumn.getJavaProperty();
+        
+        String param = "";
+        FullyQualifiedJavaType parameterType = PluginUtils.calculateParameterType(introspectedColumn, fields);
+        if (XsiliJavaBeansUtil.isEnumType(parameterType)) {
+            topLevelClass.addImportedType(parameterType);
+            param = parameterType.getShortName() + ".values()[0]";
+        } else {
+            param = "\"" + javaProperty + "\"";
+        }
+
+        method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(javaProperty) + "(" + param + ");");
     }
 
     private void addImport(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
@@ -245,8 +283,8 @@ public class MybatisMapperTestPlugin extends PluginAdapter {
         topLevelClass.addImportedType(annotationResource);
         topLevelClass.addImportedType(listType);
 
-        topLevelClass.addImportedType(modelType);
-        topLevelClass.addImportedType(modelWithBLOBsType);
+        topLevelClass.addImportedType(baseModelType);
+        topLevelClass.addImportedType(allFieldModelType);
         topLevelClass.addImportedType(modelCriteriaType);
         topLevelClass.addImportedType(mapperType);
         topLevelClass.addImportedType(superTestCase);
