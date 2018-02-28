@@ -65,6 +65,10 @@
 			<property name="targetPackageService" value="com.xsili.business.service" />
 			<!-- 接口风格, restful or 传统CRUD -->
 			<property name="enableRestful" value="true" />
+			<!-- 生成put/update方法 -->
+			<property name="enablePut" value="true" />
+			<!-- 生成patch/updateSelective方法 -->
+			<property name="enablePatch" value="false" />
 			<!-- 开启Swagger文档注释 -->
 			<property name="enableSwaggerAnnotation" value="true" />
 			<!-- 基类 -->

@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public class SpringMvcControllerPlugin extends PluginAdapter {
 
     private boolean enableRestful = true;
+    private boolean enablePut = true;
+    private boolean enablePatch = false;
     private boolean enableSwaggerAnnotation = true;
     private FullyQualifiedJavaType abstractControllerType;
     private FullyQualifiedJavaType resultModelType;
@@ -64,51 +66,70 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
     @Override
     public boolean validate(List<String> warnings) {
         String enableRestfulStr = properties.getProperty("enableRestful");
-        if (StringUtils.isNotBlank(enableRestfulStr)) {
-        	enableRestful = Boolean.parseBoolean(enableRestfulStr);
+        if (StringUtils.isBlank(enableRestfulStr)) {
+            throw new RuntimeException("缺少配置项enableRestful");
+        } else {
+            this.enableRestful = Boolean.parseBoolean(enableRestfulStr);
         }
+        
+        String enablePutStr = properties.getProperty("enablePut");
+        if (StringUtils.isBlank(enablePutStr)) {
+            throw new RuntimeException("缺少配置项enablePut");
+        } else {
+            this.enablePut = Boolean.parseBoolean(enablePutStr);
+        }
+        
+        String enablePatchStr = properties.getProperty("enablePatch");
+        if (StringUtils.isBlank(enablePatchStr)) {
+            throw new RuntimeException("缺少配置项enablePatch");
+        } else {
+            this.enablePatch = Boolean.parseBoolean(enablePatchStr);
+        }
+        
         String enableSwaggerAnnotationStr = properties.getProperty("enableSwaggerAnnotation");
-        if (StringUtils.isNotBlank(enableSwaggerAnnotationStr)) {
-            enableSwaggerAnnotation = Boolean.parseBoolean(enableSwaggerAnnotationStr);
+        if (StringUtils.isBlank(enableSwaggerAnnotationStr)) {
+            throw new RuntimeException("缺少配置项enableSwaggerAnnotation");
+        } else {
+            this.enableSwaggerAnnotation = Boolean.parseBoolean(enableSwaggerAnnotationStr);
         }
 
         String abstractController = properties.getProperty("abstractController");
         if (StringUtils.isBlank(abstractController)) {
             throw new RuntimeException("property abstractController is null");
         } else {
-            abstractControllerType = new FullyQualifiedJavaType(abstractController);
+            this.abstractControllerType = new FullyQualifiedJavaType(abstractController);
         }
 
         String resultModel = properties.getProperty("resultModel");
         if (StringUtils.isBlank(resultModel)) {
             throw new RuntimeException("property resultModel is null");
         }
-        resultModelType = new FullyQualifiedJavaType(resultModel);
+        this.resultModelType = new FullyQualifiedJavaType(resultModel);
 
         String page = properties.getProperty("page");
         if (StringUtils.isBlank(page)) {
             throw new RuntimeException("property page is null");
         } else {
-            pageType = new FullyQualifiedJavaType(page);
+            this.pageType = new FullyQualifiedJavaType(page);
         }
 
         String validatorUtil = properties.getProperty("validatorUtil");
         if (StringUtils.isNotBlank(validatorUtil)) {
-            validatorUtilType = new FullyQualifiedJavaType(validatorUtil);
+            this.validatorUtilType = new FullyQualifiedJavaType(validatorUtil);
         }
 
-        targetPackage = properties.getProperty("targetPackage");
-        targetPackageService = properties.getProperty("targetPackageService");
-        project = properties.getProperty("targetProject");
-        modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
+        this.targetPackage = properties.getProperty("targetPackage");
+        this.targetPackageService = properties.getProperty("targetPackageService");
+        this.project = properties.getProperty("targetProject");
+        this.modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
 
-        annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
-        annotationController = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RestController");
-        annotationRequestMapping = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMapping");
-        annotationRequestMethod = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMethod");
-        annotationPathVariable = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.PathVariable");
-        annotationRequestParam = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestParam");
-        annotationApiOperation = new FullyQualifiedJavaType("io.swagger.annotations.ApiOperation");
+        this.annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
+        this.annotationController = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RestController");
+        this.annotationRequestMapping = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMapping");
+        this.annotationRequestMethod = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMethod");
+        this.annotationPathVariable = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.PathVariable");
+        this.annotationRequestParam = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestParam");
+        this.annotationApiOperation = new FullyQualifiedJavaType("io.swagger.annotations.ApiOperation");
 
         return true;
     }
@@ -166,11 +187,15 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         Method addMethod = createEntity(topLevelClass, introspectedTable, modelClasses);
         topLevelClass.addMethod(addMethod);
 
-//        Method updateMethod = updateEntity(topLevelClass, introspectedTable, modelClasses, false);
-//        topLevelClass.addMethod(updateMethod);
+        if (this.enablePut) {
+            Method updateMethod = updateEntity(topLevelClass, introspectedTable, modelClasses, false);
+            topLevelClass.addMethod(updateMethod);
+        }
 
-        Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, modelClasses, true);
-        topLevelClass.addMethod(updateSelectiveMethod);
+        if (this.enablePatch) {
+            Method updateSelectiveMethod = updateEntity(topLevelClass, introspectedTable, modelClasses, true);
+            topLevelClass.addMethod(updateSelectiveMethod);
+        }
 
         Method deleteMethod = deleteEntity(introspectedTable);
         topLevelClass.addMethod(deleteMethod);
