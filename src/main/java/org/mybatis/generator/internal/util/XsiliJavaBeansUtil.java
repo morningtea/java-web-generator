@@ -118,7 +118,11 @@ public class XsiliJavaBeansUtil extends JavaBeansUtil {
                     }
                 }
 
+                String table = introspectedTable.getBaseRecordType();
+                String tableName = table.replaceAll(modelPackage + ".", "");
+                
                 String enumClassName = enumPackage + "."
+                                       + tableName // 枚举类添加表名前缀, 避免Enum重名
                                        + PluginUtils.upperCaseFirstLetter(introspectedColumn.getJavaProperty())
                                        + ENUM_CLASS_SUFFIX;
                 FullyQualifiedJavaType enumClassType = new FullyQualifiedJavaType(enumClassName);
