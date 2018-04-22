@@ -478,11 +478,12 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         
         // 调用Service delete
-        if (GenHelper.hasLogicDeletedField(introspectedTable)) {
-            method.addBodyLine("this." + getService() + "deleteLogically(" + keyParams + ");");
-        } else {
-            method.addBodyLine("this." + getService() + "deletePhysically(" + keyParams + ");");
-        }
+        method.addBodyLine("this." + getService() + "delete(" + keyParams + ");");
+//        if (GenHelper.hasLogicDeletedField(introspectedTable)) {
+//            method.addBodyLine("this." + getService() + "deleteLogically(" + keyParams + ");");
+//        } else {
+//            method.addBodyLine("this." + getService() + "deletePhysically(" + keyParams + ");");
+//        }
         method.addBodyLine("return super.success();");
 
         return method;

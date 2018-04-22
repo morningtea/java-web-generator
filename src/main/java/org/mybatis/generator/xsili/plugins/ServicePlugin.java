@@ -172,24 +172,28 @@ public class ServicePlugin extends PluginAdapter {
             serviceImplClass.addMethod(updateSelectiveMethodImpl);
         }
 
-        // deletePhysically
-        Method deletePhysicallyMethod = deletePhysicallyEntity(introspectedTable);
-        deletePhysicallyMethod.removeBodyLines();
-        serviceInterface.addMethod(deletePhysicallyMethod);
-        Method deletePhysicallyMethodImpl = deletePhysicallyEntity(introspectedTable);
-        deletePhysicallyMethodImpl.addAnnotation("@Override");
-        serviceImplClass.addMethod(deletePhysicallyMethodImpl);
-        
-        // deleteLogically
-        Method deleteLogicallyMethod = deleteLogicallyEntity(introspectedTable, serviceImplClass);
-        if (deleteLogicallyMethod != null) {
-            deleteLogicallyMethod.removeBodyLines();
-            serviceInterface.addMethod(deleteLogicallyMethod);
-        }
-        Method deleteLogicallyMethodImpl = deleteLogicallyEntity(introspectedTable, serviceImplClass);
-        if (deleteLogicallyMethodImpl != null) {
-            deleteLogicallyMethodImpl.addAnnotation("@Override");
-            serviceImplClass.addMethod(deleteLogicallyMethodImpl);
+        // delete
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
+        if(logicDeletedColumn == null) {
+        	// deletePhysically
+        	Method deletePhysicallyMethod = deletePhysicallyEntity(introspectedTable);
+        	deletePhysicallyMethod.removeBodyLines();
+        	serviceInterface.addMethod(deletePhysicallyMethod);
+        	Method deletePhysicallyMethodImpl = deletePhysicallyEntity(introspectedTable);
+        	deletePhysicallyMethodImpl.addAnnotation("@Override");
+        	serviceImplClass.addMethod(deletePhysicallyMethodImpl);
+        } else {
+        	// deleteLogically
+        	Method deleteLogicallyMethod = deleteLogicallyEntity(introspectedTable, serviceImplClass);
+        	if (deleteLogicallyMethod != null) {
+        		deleteLogicallyMethod.removeBodyLines();
+        		serviceInterface.addMethod(deleteLogicallyMethod);
+        	}
+        	Method deleteLogicallyMethodImpl = deleteLogicallyEntity(introspectedTable, serviceImplClass);
+        	if (deleteLogicallyMethodImpl != null) {
+        		deleteLogicallyMethodImpl.addAnnotation("@Override");
+        		serviceImplClass.addMethod(deleteLogicallyMethodImpl);
+        	}
         }
 
         // get
@@ -374,7 +378,7 @@ public class ServicePlugin extends PluginAdapter {
         }
         
         Method method = new Method();
-        method.setName("deleteLogically");
+        method.setName("delete");
         method.setVisibility(JavaVisibility.PUBLIC);
         method.addJavaDocLine("/** 逻辑删除 */");
         
@@ -425,7 +429,7 @@ public class ServicePlugin extends PluginAdapter {
     private Method deletePhysicallyEntity(IntrospectedTable introspectedTable) {
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
-        method.setName("deletePhysically");
+        method.setName("delete");
         method.addJavaDocLine("/** 物理删除 */");
 
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
@@ -560,6 +564,7 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Pageable"));
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Sort"));
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Sort.Direction"));
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Sort.Order"));
         
         method.addBodyLine("// 通过ExpressionUtils构建Predicate查询条件");
         method.addBodyLine("Predicate predicate = null;");
@@ -567,7 +572,7 @@ public class ServicePlugin extends PluginAdapter {
         // predicate = ExpressionUtils.and(predicate, qArticle.isDeleted.eq(false));
         
         method.addBodyLine("");
-        method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, new Sort(Direction.DESC, \"id\"));");
+        method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(new Order(Direction.DESC, \"id\")));");
 
         method.addBodyLine("");
         method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = null;");

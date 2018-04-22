@@ -1,0 +1,4 @@
+1. service#list, 针对 枚举、String 添加查询条件
+2. readme.md 扩展字段说明
+3. sort 字段, isDeleted controller处理
+4. enum 多个表的枚举重名处理
