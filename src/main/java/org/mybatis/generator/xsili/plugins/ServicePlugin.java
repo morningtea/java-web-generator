@@ -161,7 +161,6 @@ public class ServicePlugin extends PluginAdapter {
         Method updateMethodImpl = updateEntity(serviceImplClass, introspectedTable, false);
         updateMethodImpl.addAnnotation("@Override");
         serviceImplClass.addMethod(updateMethodImpl);
-        
         // updateSelective
         if(introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
             Method updateSelectiveMethod = updateEntity(serviceImplClass, introspectedTable, true);
@@ -212,6 +211,16 @@ public class ServicePlugin extends PluginAdapter {
         listMethodImpl.addAnnotation("@Override");
         serviceImplClass.addMethod(listMethodImpl);
 
+        
+        // updateDirect
+        Method updateDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, false);
+        serviceImplClass.addMethod(updateDirectMethodImpl);
+        // updateSelectiveDirect
+        if(introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
+            Method updateSelectiveDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, true);
+            serviceImplClass.addMethod(updateSelectiveDirectMethodImpl);
+        }
+        
         // 生成文件
 
         GeneratedJavaFile interfaceFile = new GeneratedJavaFile(serviceInterface, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
@@ -309,16 +318,8 @@ public class ServicePlugin extends PluginAdapter {
         return method;
     }
     
-
-    /**
-     * update
-     * 
-     * @param serviceImplClass
-     * @param introspectedTable
-     * @return
-     */
     private Method updateEntity(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable, boolean isSelective) {
-        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+    	String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
@@ -326,6 +327,41 @@ public class ServicePlugin extends PluginAdapter {
             method.setName("updateSelective");
         } else {
             method.setName("update");
+        }
+        method.setReturnType(allFieldModelType);
+        method.addParameter(new Parameter(allFieldModelType, modelParamName));
+
+        String serviceMethodName = "";
+        if(isSelective) {
+        	if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+        		serviceMethodName = "updateDirect";
+        	} else {
+        		serviceMethodName = "updateSelectiveDirect";
+        	}
+        } else {
+            serviceMethodName = "updateDirect";
+        }
+        
+        method.addBodyLine("return this." + serviceMethodName + "(" + modelParamName + ");");
+        return method;
+    }
+    
+    /**
+     * update
+     * 
+     * @param serviceImplClass
+     * @param introspectedTable
+     * @return
+     */
+    private Method updateDirect(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable, boolean isSelective) {
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+
+        Method method = new Method();
+        method.setVisibility(JavaVisibility.PRIVATE);
+        if(isSelective) {
+            method.setName("updateSelectiveDirect");
+        } else {
+            method.setName("updateDirect");
         }
         method.setReturnType(allFieldModelType);
         method.addParameter(new Parameter(allFieldModelType, modelParamName));

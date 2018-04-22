@@ -1,4 +1,12 @@
 1. service#list, 针对 枚举、String 添加查询条件
 2. readme.md 扩展字段说明
-3. sort 字段, isDeleted controller处理
-4. enum 多个表的枚举重名处理
+3. sort 字段, isDeleted controller参数处理
+4. enum 多个表的枚举重名处理 (已处理)
+
+1. org.springframework.data.domain.Example 使用方式
+  ClothingTag queryEntity = new ClothingTag();  
+  queryEntity.setType(type);  
+  Example<ClothingTag> example = Example.of(queryEntity);  
+2. JPA动态条件拼接(Specification)
+  重写Specification的toPredicate方法
+  
