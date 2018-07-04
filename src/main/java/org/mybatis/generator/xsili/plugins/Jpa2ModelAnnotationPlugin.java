@@ -96,7 +96,9 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
             topLevelClass.addImportedType(ANNOTATION_CLASS_ID);
             field.addAnnotation("@" + ANNOTATION_CLASS_ID.getShortName());
 
-            // 如果主键是Short Integer Long 则添加自增注解
+            // 如果主键是Short Integer Long 则添加自增长注解
+            // GenerationType.AUTO 由Hibernate通过hibernate_sequence表实现序列自增, 每次创建记录前都需要查询获取当前ID
+            // GenerationType.IDENTITY 由数据库本身提供自增长支持
             FullyQualifiedJavaType keyType = PluginUtils.calculateKeyType(introspectedTable);
             if (keyType.equals(PrimitiveTypeWrapper.getShortInstance())
                 || keyType.equals(PrimitiveTypeWrapper.getIntegerInstance())
@@ -105,7 +107,7 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
                 topLevelClass.addImportedType(ANNOTATION_CLASS_GENERATED_VALUE);
                 topLevelClass.addImportedType(CLASS_GENERATION_TYPE);
                 field.addAnnotation("@" + ANNOTATION_CLASS_GENERATED_VALUE.getShortName()
-                                    + "(strategy = GenerationType.AUTO)");
+                                    + "(strategy = GenerationType.IDENTITY)");
             }
         } else if (createdTimeField.equals(introspectedColumn.getJavaProperty())) {// 创建日期
             topLevelClass.addImportedType(ANNOTATION_CLASS_COLUMN);
