@@ -74,7 +74,7 @@ public abstract class AbstractController {
         return (CommonUser) subject.getPrincipal();
     }
 
-    protected void checkOwner(Integer userId) {
+    protected void checkOwner(Long userId) {
         if (!getLoginCommonUser().getId().equals(userId)) {
             throw new BusinessException("当前用户不是数据项的所有者");
         }

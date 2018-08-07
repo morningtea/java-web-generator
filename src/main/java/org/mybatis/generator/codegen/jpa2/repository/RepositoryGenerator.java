@@ -103,7 +103,7 @@ public class RepositoryGenerator extends AbstractJavaClientGenerator {
     
     @SuppressWarnings("unused")
     private void addUpdateDeleted(Interface interfaze, FullyQualifiedJavaType modelType) {
-        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         if(logicDeletedColumn != null) {
             Method updateDeletedMethod = new Method();
             updateDeletedMethod.setName("updateDeleted");

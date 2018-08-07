@@ -24,7 +24,8 @@ public class GenHelper {
      * @return
      */
     public static boolean hasLogicDeletedField(IntrospectedTable introspectedTable) {
-        return getLogicDeletedField(introspectedTable) != null;
+    	String fieldName = getLogicDeletedField(introspectedTable);
+        return StringUtils.isNotBlank(fieldName);
     }
 
     /**
@@ -33,8 +34,8 @@ public class GenHelper {
      * @param introspectedTable
      * @return maybe null
      */
-    public static IntrospectedColumn getLogicDeletedField(IntrospectedTable introspectedTable) {
-        String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_LOGIC_DELETED_FIELD);
+    public static IntrospectedColumn getLogicDeletedColumn(IntrospectedTable introspectedTable) {
+        String fieldName = getLogicDeletedField(introspectedTable);
         return getFieldByName(introspectedTable, fieldName);
     }
     
@@ -44,7 +45,7 @@ public class GenHelper {
      * @param introspectedTable
      * @return maybe null
      */
-    public static IntrospectedColumn getOwnerField(IntrospectedTable introspectedTable) {
+    public static IntrospectedColumn getOwnerColumn(IntrospectedTable introspectedTable) {
         String fieldName = PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_OWNER_FIELD);
         return getFieldByName(introspectedTable, fieldName);
     }
@@ -66,6 +67,10 @@ public class GenHelper {
             }
         }
         return null;
+    }
+
+    public static String getLogicDeletedField(IntrospectedTable introspectedTable) {
+    	return PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_LOGIC_DELETED_FIELD);
     }
 
     public static String getCreatedTimeField(IntrospectedTable introspectedTable) {

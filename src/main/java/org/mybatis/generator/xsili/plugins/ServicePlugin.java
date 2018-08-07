@@ -172,7 +172,7 @@ public class ServicePlugin extends PluginAdapter {
         }
 
         // delete
-        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         if(logicDeletedColumn == null) {
         	// deletePhysically
         	Method deletePhysicallyMethod = deletePhysicallyEntity(introspectedTable);
@@ -408,7 +408,7 @@ public class ServicePlugin extends PluginAdapter {
      * @return maybe null
      */
     private Method deleteLogicallyEntity(IntrospectedTable introspectedTable, TopLevelClass serviceImplClass) {
-        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         if(logicDeletedColumn == null) {
             return null;
         }
@@ -440,7 +440,7 @@ public class ServicePlugin extends PluginAdapter {
                                + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
             method.addBodyLine(modelParamName + ".ifPresent((v) -> {");
             method.addBodyLine("v.set" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "(true);");
-            method.addBodyLine("this.update(v);");
+            method.addBodyLine("this.updateDirect(v);");
             method.addBodyLine("});");
         } else {
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getMapper()
@@ -560,7 +560,7 @@ public class ServicePlugin extends PluginAdapter {
         method.addBodyLine("criteria.setPage(pageNum);");
         method.addBodyLine("criteria.setLimit(pageSize);");
         
-        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedField(introspectedTable);
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         if(logicDeletedColumn == null) {
             method.addBodyLine("@SuppressWarnings(\"unused\")");
             method.addBodyLine(modelSubCriteriaType.getShortName() + " cri = criteria.createCriteria();");

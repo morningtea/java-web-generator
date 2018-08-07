@@ -38,6 +38,7 @@
 	
 		<java.version>1.8</java.version>
 		<mysql.version>5.1.21</mysql.version>
+	    <postgresql.version>42.2.4</postgresql.version>
 		
 		<log4j.version>1.2.17</log4j.version>
 		<slf4j-api.version>1.7.25</slf4j-api.version>
@@ -133,10 +134,16 @@
 		</dependency>
 		
 		<dependency>
+		    <groupId>org.postgresql</groupId>
+		    <artifactId>postgresql</artifactId>
+		    <version>${postgresql.version}</version>
+		    <optional>true</optional>
+		</dependency>
+		
+		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>${mysql.version}</version>
-			<scope>provided</scope>
 			<optional>true</optional>
 		</dependency>
 		

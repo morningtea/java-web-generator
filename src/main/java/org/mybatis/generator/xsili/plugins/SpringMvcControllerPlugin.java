@@ -279,6 +279,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 添加方法参数
         String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
         String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
+        String logicDeletedField = GenHelper.getLogicDeletedField(introspectedTable);
         List<Field> fields = new ArrayList<>();
         for (TopLevelClass modelClass : modelClasses) {
             fields.addAll(modelClass.getFields());
@@ -287,9 +288,11 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
-            // 排除主键, 创建时间, 更新时间
-            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdTimeField.equals(javaProperty)
-                && !updatedTimeField.equals(javaProperty)) {
+            // 排除主键, 创建时间, 更新时间, 逻辑删除
+            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) 
+            		&& !createdTimeField.equals(javaProperty)
+            		&& !updatedTimeField.equals(javaProperty) 
+            		&& !logicDeletedField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
@@ -357,6 +360,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 添加方法参数
         String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
         String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
+        String logicDeletedField = GenHelper.getLogicDeletedField(introspectedTable);
         List<Field> fields = new ArrayList<>();
         for (TopLevelClass modelClass : modelClasses) {
             fields.addAll(modelClass.getFields());
@@ -366,7 +370,10 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
             String javaProperty = introspectedColumn.getJavaProperty();
-            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) && !createdTimeField.equals(javaProperty) && !updatedTimeField.equals(javaProperty)) {
+            if (!PluginUtils.isPrimaryKey(introspectedTable, introspectedColumn) 
+            		&& !createdTimeField.equals(javaProperty) 
+            		&& !updatedTimeField.equals(javaProperty)
+            		&& !logicDeletedField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
@@ -404,7 +411,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             method.addBodyLine("ValidatorUtil.checkParams(" + modelParamName + ");");
         }
         // 校验所有者
-        IntrospectedColumn ownerColumn = GenHelper.getOwnerField(introspectedTable);
+        IntrospectedColumn ownerColumn = GenHelper.getOwnerColumn(introspectedTable);
         if(ownerColumn != null) {
             // checkOwner
             method.addBodyLine("// 校验所有者");
@@ -460,16 +467,16 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 填充key
         String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
         
+        // 判断是否存在(调用Service get)
+        String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+        method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
+        method.addBodyLine("if(" + modelParamName + " == null) {");
+        method.addBodyLine("return super.gone();");
+        method.addBodyLine("}");
+        
         // 校验所有者
-        IntrospectedColumn ownerColumn = GenHelper.getOwnerField(introspectedTable);
+        IntrospectedColumn ownerColumn = GenHelper.getOwnerColumn(introspectedTable);
         if(ownerColumn != null) {
-            // 调用Service get
-            String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
-            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
-            method.addBodyLine("if(" + modelParamName + " == null) {");
-            method.addBodyLine("return super.success();");
-            method.addBodyLine("}");
-            
             // checkOwner
             method.addBodyLine("");
             method.addBodyLine("// 校验所有者");
@@ -479,11 +486,13 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         
         // 调用Service delete
         method.addBodyLine("this." + getService() + "delete(" + keyParams + ");");
+        
 //        if (GenHelper.hasLogicDeletedField(introspectedTable)) {
 //            method.addBodyLine("this." + getService() + "deleteLogically(" + keyParams + ");");
 //        } else {
 //            method.addBodyLine("this." + getService() + "deletePhysically(" + keyParams + ");");
 //        }
+        
         method.addBodyLine("return super.success();");
 
         return method;
