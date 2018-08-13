@@ -7,6 +7,10 @@
 7. url路径连接符, 改成驼峰命名
 8. 生成默认构造函数(避免添加自定义构成函数时无意覆盖了默认构造函数)
 9. 表字段默认值需要在Service填充
+10. table pojo 忽略前缀
+11. 参数检验规则说明
+12. 支持demo测试
+13. PUT, 必要性?, 代码规范每一层区分PUT PATCH
 
 1. org.springframework.data.domain.Example 使用方式
   ClothingTag queryEntity = new ClothingTag();  
@@ -14,3 +18,4 @@
   Example<ClothingTag> example = Example.of(queryEntity);  
 2. JPA动态条件拼接(Specification)
   重写Specification的toPredicate方法
+3. spring boot jpa 更新部分字段需要添加dao方法, 默认更新全部自动.
