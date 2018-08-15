@@ -382,8 +382,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
 
         // 填充参数
-        if(isSelective && introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            // 查询记录
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            // 查询记录, jpa2默认更新entity的全部字段, 所以先查询数据库后赋值
             method.addBodyLine("// 查询记录");
             String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
@@ -394,7 +394,11 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             method.addBodyLine("");
             method.addBodyLine("// 填充参数");
             // 填充参数 notKey
-            PluginUtils.generateModelSetterBodyLineNullVerify(modelParamName, method, notKeyParameters, topLevelClass);
+            if(isSelective) {
+                PluginUtils.generateModelSetterBodyLineNullVerify(modelParamName, method, notKeyParameters, topLevelClass);
+            } else {
+                PluginUtils.generateModelSetterBodyLine(modelParamName, method, notKeyParameters);
+            }
         } else {
             method.addBodyLine("// 填充参数");
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new " + allFieldModelType.getShortName() + "();");
