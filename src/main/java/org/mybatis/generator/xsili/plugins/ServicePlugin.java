@@ -500,15 +500,30 @@ public class ServicePlugin extends PluginAdapter {
         }
         String params = PluginUtils.getCallParameters(keyParameterList);
 
+        String modelObj = PluginUtils.lowerCaseFirstLetter(allFieldModelType.getShortName());
+        
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
             String keyParams = prepareCallByEntityAsKey(introspectedTable, method, method.getParameters());
             if(StringUtils.isNotBlank(keyParams)) {
                 params = keyParams;
             }
-            method.addBodyLine("return this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ").orElse(null);");
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelObj + " = this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ").orElse(null);");
         } else {
-            method.addBodyLine("return this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelObj + " = this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
         }
+        
+        // 逻辑删除
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
+        if(logicDeletedColumn != null) {
+            method.addBodyLine("if(" + modelObj + " != null) {");
+            method.addBodyLine("return " + modelObj + ".getIsDeleted() ? null : " + modelObj + ";");
+            method.addBodyLine("}");
+            method.addBodyLine("return null;");
+        } else {
+            method.addBodyLine("return " + modelObj + ";");
+        }
+        
+        
         return method;
     }
     
@@ -557,7 +572,7 @@ public class ServicePlugin extends PluginAdapter {
         method.addBodyLine("criteria.setLimit(pageSize);");
         
         IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
-        if(logicDeletedColumn == null) {
+        if(logicDeletedColumn == null) {// 逻辑删除
             method.addBodyLine("@SuppressWarnings(\"unused\")");
             method.addBodyLine(modelSubCriteriaType.getShortName() + " cri = criteria.createCriteria();");
         } else {
@@ -608,6 +623,11 @@ public class ServicePlugin extends PluginAdapter {
         method.addBodyLine("Predicate predicate = null;");
         // method.addBodyLine("// 示例, 可以去掉");
         method.addBodyLine("predicate = ExpressionUtils.and(predicate, " + qModelTypeObj + ".id.isNotNull());");
+        // 逻辑删除
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
+        if(logicDeletedColumn != null) {
+            method.addBodyLine("predicate = ExpressionUtils.and(predicate, " + qModelTypeObj + "." + logicDeletedColumn.getJavaProperty() + ".eq(false));");
+        }
         
         method.addBodyLine("");
         method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(new Order(Direction.DESC, \"id\")));");
