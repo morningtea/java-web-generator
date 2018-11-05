@@ -48,6 +48,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
     private String targetPackage;
     private String targetPackageService;
+    private String classNamePrefix;
     private String project;
     private String modelPackage;
 
@@ -120,6 +121,10 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
         this.targetPackage = properties.getProperty("targetPackage");
         this.targetPackageService = properties.getProperty("targetPackageService");
+        this.classNamePrefix = properties.getProperty("classNamePrefix");
+        if(this.classNamePrefix == null) {
+            this.classNamePrefix = "";
+        }
         this.project = properties.getProperty("targetProject");
         this.modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
 
@@ -145,7 +150,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         baseModelType = new FullyQualifiedJavaType(introspectedTable.getBaseRecordType());
         allFieldModelType = introspectedTable.getRules().calculateAllFieldsClass();
         serviceType = new FullyQualifiedJavaType(targetPackageService + "." + tableName + "Service");
-        controllerType = new FullyQualifiedJavaType(targetPackage + "." + tableName + "Controller");
+        controllerType = new FullyQualifiedJavaType(targetPackage + "." + this.classNamePrefix + tableName + "Controller");
 
         TopLevelClass topLevelClass = new TopLevelClass(controllerType);
         
@@ -177,7 +182,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         // 添加注解
         topLevelClass.addAnnotation("@RestController");
-        topLevelClass.addAnnotation("@RequestMapping(\"/v1/" + baseModelType.getShortName().toLowerCase() + "s" + "\")");
+        topLevelClass.addAnnotation("@RequestMapping(\"/v1/" + PluginUtils.lowerCaseFirstLetter(baseModelType.getShortName()) + "s" + "\")");
 
         // 添加 Mapper引用
         addServiceField(topLevelClass);
@@ -294,6 +299,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             		&& !updatedTimeField.equals(javaProperty) 
             		&& !logicDeletedField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
+                // 导入参数类型
+                topLevelClass.addImportedType(parameter.getType());
                 parameter.addAnnotation("@RequestParam(required = false)");
                 method.addParameter(parameter);
             }
