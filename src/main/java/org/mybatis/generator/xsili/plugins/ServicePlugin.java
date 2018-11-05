@@ -38,13 +38,10 @@ public class ServicePlugin extends PluginAdapter {
     private FullyQualifiedJavaType pageType;
     private FullyQualifiedJavaType idGeneratorType;
 
-    private FullyQualifiedJavaType slf4jLogger;
-    private FullyQualifiedJavaType slf4jLoggerFactory;
-
     private FullyQualifiedJavaType serviceInterfaceType;
     private FullyQualifiedJavaType serviceType;
     private FullyQualifiedJavaType mapperType;
-//    private FullyQualifiedJavaType baseModelType;
+	// private FullyQualifiedJavaType baseModelType;
     /**
      * 如果有WithBlob, 则modelType赋值为BlobModel, 否则赋值为BaseModel
      */
@@ -53,15 +50,20 @@ public class ServicePlugin extends PluginAdapter {
     private FullyQualifiedJavaType modelSubCriteriaType;
     private FullyQualifiedJavaType businessExceptionType;
 
-    private FullyQualifiedJavaType listType;
-
-    private FullyQualifiedJavaType annotationResource;
-    private FullyQualifiedJavaType annotationService;
+    private FullyQualifiedJavaType listType = new FullyQualifiedJavaType("java.util.List");
+    
+    private FullyQualifiedJavaType slf4jLogger = new FullyQualifiedJavaType("org.slf4j.Logger");
+    private FullyQualifiedJavaType slf4jLoggerFactory = new FullyQualifiedJavaType("org.slf4j.LoggerFactory");
+    
+//    private FullyQualifiedJavaType annotationPersistenceContext = new FullyQualifiedJavaType("javax.persistence.PersistenceContext");
+//    private FullyQualifiedJavaType entityManagerType = new FullyQualifiedJavaType("javax.persistence.EntityManager");
+    private FullyQualifiedJavaType querydslJPAQueryFactoryType = new FullyQualifiedJavaType("com.querydsl.jpa.impl.JPAQueryFactory");
+    
+    private FullyQualifiedJavaType annotationAutowired = new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired");
+    private FullyQualifiedJavaType annotationService = new FullyQualifiedJavaType("org.springframework.stereotype.Service");
 
     public ServicePlugin() {
         super();
-        slf4jLogger = new FullyQualifiedJavaType("org.slf4j.Logger");
-        slf4jLoggerFactory = new FullyQualifiedJavaType("org.slf4j.LoggerFactory");
     }
 
     @Override
@@ -84,11 +86,6 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplPackage = properties.getProperty("targetPackageImpl");
         project = properties.getProperty("targetProject");
         modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
-
-        annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
-        annotationService = new FullyQualifiedJavaType("org.springframework.stereotype.Service");
-
-        listType = new FullyQualifiedJavaType("java.util.List");
 
         return true;
     }
@@ -144,6 +141,8 @@ public class ServicePlugin extends PluginAdapter {
         addLoggerField(serviceImplClass);
         // 添加 Mapper引用
         addMapperField(serviceImplClass);
+        // 添加 querydsl相关
+        addQuerydsl(serviceImplClass);
 
         // 方法
         // add
@@ -261,7 +260,7 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplClass.addImportedType(allFieldModelType);
 
         serviceImplClass.addImportedType(annotationService);
-        serviceImplClass.addImportedType(annotationResource);
+        serviceImplClass.addImportedType(annotationAutowired);
     }
 
     
@@ -595,6 +594,7 @@ public class ServicePlugin extends PluginAdapter {
         // 导入类
         serviceImplClass.addImportedType(pageType);
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("com.querydsl.core.types.Predicate"));
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType("com.querydsl.core.types.ExpressionUtils"));
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Page"));
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.PageRequest"));
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Pageable"));
@@ -602,22 +602,19 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Sort.Direction"));
         serviceImplClass.addImportedType(new FullyQualifiedJavaType("org.springframework.data.domain.Sort.Order"));
         
-        method.addBodyLine("// 通过ExpressionUtils构建Predicate查询条件");
+        String qModelType = "Q"+allFieldModelType.getShortName();
+        serviceImplClass.addImportedType(new FullyQualifiedJavaType(allFieldModelType.getPackageName() + "." + qModelType));
+
+        String qModelTypeObj = "q"+allFieldModelType.getShortName();
+        
+        method.addBodyLine(qModelType + " " + qModelTypeObj + " = " + qModelType + "." + PluginUtils.lowerCaseFirstLetter(allFieldModelType.getShortName()) + ";");
         method.addBodyLine("Predicate predicate = null;");
-        // TODO 过滤isDeleted的数据
-        // predicate = ExpressionUtils.and(predicate, qArticle.isDeleted.eq(false));
+        // method.addBodyLine("// 示例, 可以去掉");
+        method.addBodyLine("predicate = ExpressionUtils.and(predicate, " + qModelTypeObj + ".id.isNotNull());");
         
         method.addBodyLine("");
         method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(new Order(Direction.DESC, \"id\")));");
-
-        method.addBodyLine("");
-        method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = null;");
-        method.addBodyLine("if(predicate != null) {");
-        method.addBodyLine("page = " + getMapper() + "findAll(predicate, pageable);");
-        method.addBodyLine("} else {");
-        method.addBodyLine("page = " + getMapper() + "findAll(pageable);");
-        method.addBodyLine("}");
-        
+        method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = " + getMapper() + "findAll(predicate, pageable);");
         method.addBodyLine("return " + pageType.getShortName() + ".buildPage(page);");
         
         return method;
@@ -640,7 +637,6 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplClass.addField(field);
     }
     
-
     /**
      * 添加 Mapper依赖字段
      */
@@ -651,8 +647,44 @@ public class ServicePlugin extends PluginAdapter {
         field.setVisibility(JavaVisibility.PRIVATE);
         field.setType(mapperType);
         field.setName(PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()));
-        field.addAnnotation("@Resource");
+        field.addAnnotation("@" + annotationAutowired.getShortName());
         serviceImplClass.addField(field);
+    }
+    
+    /**
+     * 添加 querydsl相关
+     */
+    private void addQuerydsl(TopLevelClass serviceImplClass) {
+//    	serviceImplClass.addImportedType(annotationPersistenceContext);
+//    	serviceImplClass.addImportedType(entityManagerType);
+    	serviceImplClass.addImportedType(querydslJPAQueryFactoryType);
+    	
+//    	Field entityManagerField = new Field();
+//    	entityManagerField.setVisibility(JavaVisibility.PRIVATE);
+//    	entityManagerField.setType(entityManagerType);
+//    	entityManagerField.setName(PluginUtils.lowerCaseFirstLetter(entityManagerType.getShortName()));
+//    	entityManagerField.addAnnotation("@" + annotationAutowired.getShortName());
+//    	entityManagerField.addAnnotation("@" + annotationPersistenceContext.getShortName());
+//    	serviceImplClass.addField(entityManagerField);
+    	
+    	Field querydslJPAQueryFactoryField = new Field();
+    	
+		querydslJPAQueryFactoryField.addJavaDocLine("// 简单用法示例, 如: 按班级查看捐款总额");
+		querydslJPAQueryFactoryField.addJavaDocLine("// QUser quser = QUser.user;");
+		querydslJPAQueryFactoryField
+				.addJavaDocLine("// List<Tuple> tupleList = jpaQueryFactory.select(quser.class, quser.donation.sum())");
+		querydslJPAQueryFactoryField.addJavaDocLine("// .from(quser)");
+		querydslJPAQueryFactoryField.addJavaDocLine("// .groupBy(quser.class)");
+		querydslJPAQueryFactoryField.addJavaDocLine("// .orderBy(quser.donation.sum().desc())");
+		querydslJPAQueryFactoryField.addJavaDocLine("// .fetch();");
+		querydslJPAQueryFactoryField.addJavaDocLine("// tupleList.forEach(tuple -> {...});");
+    	
+    	querydslJPAQueryFactoryField.setVisibility(JavaVisibility.PRIVATE);
+    	querydslJPAQueryFactoryField.setType(querydslJPAQueryFactoryType);
+    	querydslJPAQueryFactoryField.setName("jpaQueryFactory");
+    	querydslJPAQueryFactoryField.addAnnotation("@SuppressWarnings(\"unused\")");
+    	querydslJPAQueryFactoryField.addAnnotation("@" + annotationAutowired.getShortName());
+    	serviceImplClass.addField(querydslJPAQueryFactoryField);
     }
 
     private String getMapper() {
