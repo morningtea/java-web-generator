@@ -151,4 +151,23 @@ public class SimplePage<T> implements Serializable {
     public static int getTotalPage(long totalCount, int pageSize) {
         return pageSize <= 0 ? 1 : (int) Math.ceil((double) totalCount / (double) pageSize);
     }
+
+	/**
+	 * 是否第一页
+	 * 
+	 * @return
+	 */
+	public boolean isFirst() {
+		return pageNum <= 0;
+	}
+
+	/**
+	 * 是否最后一页
+	 * 
+	 * @return
+	 */
+	public boolean isLast() {
+		return pageNum >= totalPage - 1;
+	}
+    
 }

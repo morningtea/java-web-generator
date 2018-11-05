@@ -34,8 +34,7 @@ public class BusinessException extends RuntimeException {
     }
 
     public BusinessException(Result result) {
-        // TODO super message 允许为空吗 ?
-        super(result.getMsg());
+        super(result.getErrorMsg());
         this.result = result;
     }
 

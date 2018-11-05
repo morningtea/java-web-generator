@@ -46,10 +46,10 @@
 			<property name="idGenerator" value="org.mybatis.generator.xsili.outputdependence.IDGenerator" />
 		</plugin>
 		
-        <!-- controller代码生成 -->
+        <!-- portal controller代码生成 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.SpringMvcControllerPlugin">
 			<property name="targetProject" value="src/main/java" />
-			<property name="targetPackage" value="com.xsili.business.controller" />
+			<property name="targetPackage" value="com.xsili.business.controller.portal" />
 			<property name="targetPackageService" value="com.xsili.business.service" />
 			<!-- 接口风格, restful or 传统CRUD -->
 			<property name="enableRestful" value="true" />
@@ -60,7 +60,30 @@
 			<!-- 开启Swagger文档注释 -->
 			<property name="enableSwaggerAnnotation" value="true" />
 			<!-- 基类 -->
-			<property name="abstractController" value="org.mybatis.generator.xsili.outputdependence.AbstractController" />
+			<property name="abstractController" value="org.mybatis.generator.xsili.outputdependence.AbstractPortalController" />
+			<!-- 分页类型 -->
+			<property name="page" value="org.mybatis.generator.xsili.outputdependence.page.SimplePage" />
+			<!-- 方法返回值类型 -->
+			<property name="resultModel" value="org.mybatis.generator.xsili.outputdependence.model.Result" />
+			<!-- 选填, 参数校验工具类 -->
+			<property name="validatorUtil" value="org.mybatis.generator.xsili.outputdependence.validation.ValidatorUtil" />
+		</plugin>
+		
+        <!-- admin controller代码生成 -->
+		<plugin type="org.mybatis.generator.xsili.plugins.SpringMvcControllerPlugin">
+			<property name="targetProject" value="src/main/java" />
+			<property name="targetPackage" value="com.xsili.business.controller.admin" />
+			<property name="targetPackageService" value="com.xsili.business.service" />
+			<!-- 接口风格, restful or 传统CRUD -->
+			<property name="enableRestful" value="true" />
+			<!-- 生成put/update方法 -->
+			<property name="enablePut" value="true" />
+			<!-- 生成patch/updateSelective方法 -->
+			<property name="enablePatch" value="false" />
+			<!-- 开启Swagger文档注释 -->
+			<property name="enableSwaggerAnnotation" value="true" />
+			<!-- 基类 -->
+			<property name="abstractController" value="org.mybatis.generator.xsili.outputdependence.AbstractAdminController" />
 			<!-- 分页类型 -->
 			<property name="page" value="org.mybatis.generator.xsili.outputdependence.page.SimplePage" />
 			<!-- 方法返回值类型 -->

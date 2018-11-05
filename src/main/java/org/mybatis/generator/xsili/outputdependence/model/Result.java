@@ -7,132 +7,187 @@ import org.mybatis.generator.xsili.outputdependence.I18NUtils;
  */
 public class Result {
 
-    /** 状态码, 正常0, 失败1, 未登录2, 个位数是保留状态码, 其他业务相关状态码10以上 */
-    private int errorCode = ResultErrorCodeEnum.SUCCESS.getCode();
+	/** 状态码, 正常0, 失败1, 系统错误2, 未登录3, 个位数是保留状态码, 其他业务相关状态码10以上 */
+	private int code = ResultErrorCodeEnum.SUCCESS.getCode();
 
-    /** 消息 */
-    private String msg;
+	/** 消息 */
+	private String errorMsg;
 
-    /** 业务数据 */
-    private Object data;
+	/** debug模式下, 同时返回错误堆栈 */
+	private String exMsg;
 
-    public Result() {
-    }
+	/** 业务数据 */
+	private Object data;
 
-    /**
-     * status 默认成功 1
-     */
-    public Result(String msg) {
-        this.msg = msg;
-    }
+	public Result() {
+	}
 
-    /**
-     * status 默认成功 1
-     */
-    public Result(Object data) {
-        this.data = data;
-    }
+	public Result(int code, String errorMsg) {
+		this.code = code;
+		this.errorMsg = errorMsg;
+	}
 
-    public Result(int errorCode, String msg) {
-        this(msg);
-        this.errorCode = errorCode;
-    }
+	public Result(int code, String errorMsg, Object data) {
+		this(code, errorMsg);
+		this.data = data;
+	}
 
-    public Result(int errorCode, String msg, Object data) {
-        this(msg);
-        this.errorCode = errorCode;
-        this.data = data;
-    }
+	/**
+	 * 操作成功
+	 * 
+	 * @return
+	 */
+	public static Result success() {
+		return new Result(ResultErrorCodeEnum.SUCCESS.getCode(),
+				I18NUtils.getText(ResultErrorCodeEnum.SUCCESS.getKey()));
+	}
 
-    /**
-     * 构建成功结果模型
-     * 
-     * @param data
-     * @return
-     */
-    public static Result success(Object data) {
-        return new Result(data);
-    }
+	/**
+	 * 操作成功
+	 * 
+	 * @param data
+	 * @return
+	 */
+	public static Result success(Object data) {
+		return new Result(ResultErrorCodeEnum.SUCCESS.getCode(),
+				I18NUtils.getText(ResultErrorCodeEnum.SUCCESS.getKey()), data);
+	}
 
-    /**
-     * 构建错误结果模型
-     * 
-     * @return
-     */
-    public static Result error() {
-        return new Result(ResultErrorCodeEnum.FAILURE.getCode(), I18NUtils.getText(ResultErrorCodeEnum.FAILURE.getKey()));
-    }
+	/**
+	 * 请求失败
+	 * 
+	 * @return
+	 */
+	public static Result fail() {
+		return new Result(ResultErrorCodeEnum.FAIL.getCode(), I18NUtils.getText(ResultErrorCodeEnum.FAIL.getKey()));
+	}
 
-    /**
-     * 构建错误结果模型
-     * 
-     * @param msg
-     * @return
-     */
-    public static Result error(String msg) {
-        return new Result(ResultErrorCodeEnum.FAILURE.getCode(), msg);
-    }
+	/**
+	 * 请求失败
+	 * 
+	 * @param errorMsg
+	 * @return
+	 */
+	public static Result fail(String errorMsg) {
+		return new Result(ResultErrorCodeEnum.FAIL.getCode(), errorMsg);
+	}
+	
+	/**
+	 * 请求失败
+	 * 
+	 * @param code
+	 * @param errorMsg
+	 * @return
+	 */
+	public static Result fail(int code, String errorMsg) {
+		return new Result(code, errorMsg);
+	}
 
-    /**
-     * 构建session超时/未登录 结果模型
-     * 
-     * @return
-     */
-    public static Result sessionTimeout() {
-        return new Result(ResultErrorCodeEnum.SESSION_TIMEOUT.getCode(), I18NUtils.getText(ResultErrorCodeEnum.SESSION_TIMEOUT.getKey()));
-    }
+	/**
+	 * 系统错误
+	 * 
+	 * @return
+	 */
+	public static Result error() {
+		return new Result(ResultErrorCodeEnum.SYSTEM_ERROR.getCode(),
+				I18NUtils.getText(ResultErrorCodeEnum.SYSTEM_ERROR.getKey()));
+	}
 
-    /**
-     * 构建session超时/未登录 结果模型
-     * 
-     * @param loginUrl
-     * @return
-     */
-    public static Result sessionTimeout(String loginUrl) {
-        Result result = sessionTimeout();
-        result.setData(loginUrl);
-        return result;
-    }
+	/**
+	 * 系统错误
+	 * 
+	 * @param errorMsg
+	 * @return
+	 */
+	public static Result error(String errorMsg) {
+		return new Result(ResultErrorCodeEnum.SYSTEM_ERROR.getCode(), errorMsg);
+	}
+	
+	/**
+	 * 系统错误
+	 * 
+	 * @param code
+	 * @param errorMsg
+	 * @return
+	 */
+	public static Result error(int code, String errorMsg) {
+		return new Result(code, errorMsg);
+	}
 
-    /**
-     * 构建无权限 结果模型
-     * 
-     * @return
-     */
-    public static Result forbidden() {
-        return new Result(ResultErrorCodeEnum.AUTH_ACCOUNT_FORBIDDEN.getCode(), I18NUtils.getText(ResultErrorCodeEnum.AUTH_ACCOUNT_FORBIDDEN.getKey()));
-    }
+	/**
+	 * session超时/未登录
+	 * 
+	 * @return
+	 */
+	public static Result sessionTimeout() {
+		return new Result(ResultErrorCodeEnum.SESSION_TIMEOUT.getCode(),
+				I18NUtils.getText(ResultErrorCodeEnum.SESSION_TIMEOUT.getKey()));
+	}
 
-    /**
-     * 构建用户被禁用 结果模型
-     * 
-     * @return
-     */
-    public static Result accountDisabled() {
-        return new Result(ResultErrorCodeEnum.AUTH_ACCOUNT_DISABLED.getCode(), I18NUtils.getText(ResultErrorCodeEnum.AUTH_ACCOUNT_DISABLED.getKey()));
-    }
+	/**
+	 * session超时/未登录
+	 * 
+	 * @param loginUrl
+	 * @return
+	 */
+	public static Result sessionTimeout(String loginUrl) {
+		Result result = sessionTimeout();
+		result.setData(loginUrl);
+		return result;
+	}
 
-    public int getErrorCode() {
-        return errorCode;
-    }
+	/**
+	 * 用户被禁用
+	 * 
+	 * @return
+	 */
+	public static Result accountDisabled() {
+		return new Result(ResultErrorCodeEnum.AUTH_ACCOUNT_DISABLED.getCode(),
+				I18NUtils.getText(ResultErrorCodeEnum.AUTH_ACCOUNT_DISABLED.getKey()));
+	}
 
-    public void setErrorCode(int errorCode) {
-        this.errorCode = errorCode;
-    }
+	/**
+	 * 权限不足
+	 * 
+	 * @return
+	 */
+	public static Result forbidden() {
+		return new Result(ResultErrorCodeEnum.AUTH_ACCOUNT_FORBIDDEN.getCode(),
+				I18NUtils.getText(ResultErrorCodeEnum.AUTH_ACCOUNT_FORBIDDEN.getKey()));
+	}
 
-    public String getMsg() {
-        return msg;
-    }
+	// getter setter
 
-    public void setMsg(String msg) {
-        this.msg = msg;
-    }
+	public int getCode() {
+		return code;
+	}
 
-    public Object getData() {
-        return data;
-    }
+	public void setCode(int code) {
+		this.code = code;
+	}
 
-    public void setData(Object data) {
-        this.data = data;
-    }
+	public String getErrorMsg() {
+		return errorMsg;
+	}
+
+	public void setErrorMsg(String errorMsg) {
+		this.errorMsg = errorMsg;
+	}
+
+	public String getExMsg() {
+		return exMsg;
+	}
+
+	public void setExMsg(String exMsg) {
+		this.exMsg = exMsg;
+	}
+
+	public Object getData() {
+		return data;
+	}
+
+	public void setData(Object data) {
+		this.data = data;
+	}
+
 }

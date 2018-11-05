@@ -8,7 +8,7 @@ package org.mybatis.generator.xsili.outputdependence.user;
  * @author 叶鹏
  * @date 2017年8月28日
  */
-public class AdminUser extends CommonUser {
+public class UpmsUser extends CommonUser {
 
     private static final long serialVersionUID = 1L;
 
