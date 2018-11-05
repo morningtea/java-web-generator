@@ -51,7 +51,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
     private String project;
     private String modelPackage;
 
-    private FullyQualifiedJavaType annotationResource;
+    private FullyQualifiedJavaType annotationAutowired;
     private FullyQualifiedJavaType annotationController;
     private FullyQualifiedJavaType annotationRequestMapping;
     private FullyQualifiedJavaType annotationRequestMethod;
@@ -123,7 +123,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         this.project = properties.getProperty("targetProject");
         this.modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
 
-        this.annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
+        this.annotationAutowired = new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired");
         this.annotationController = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RestController");
         this.annotationRequestMapping = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMapping");
         this.annotationRequestMethod = new FullyQualifiedJavaType("org.springframework.web.bind.annotation.RequestMethod");
@@ -236,7 +236,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 //        topLevelClass.addImportedType(baseModelType);
         topLevelClass.addImportedType(allFieldModelType);
 
-        topLevelClass.addImportedType(annotationResource);
+        topLevelClass.addImportedType(annotationAutowired);
         topLevelClass.addImportedType(annotationController);
         topLevelClass.addImportedType(annotationRequestMapping);
         topLevelClass.addImportedType(annotationRequestMethod);
@@ -592,7 +592,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         field.setVisibility(JavaVisibility.PRIVATE);
         field.setType(serviceType);
         field.setName(PluginUtils.lowerCaseFirstLetter(serviceType.getShortName()));
-        field.addAnnotation("@Resource");
+        field.addAnnotation("@Autowired");
         topLevelClass.addField(field);
     }
 

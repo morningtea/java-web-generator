@@ -46,7 +46,7 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
 
     private FullyQualifiedJavaType junit;
     private FullyQualifiedJavaType assertType;
-    private FullyQualifiedJavaType annotationResource;
+    private FullyQualifiedJavaType annotationAutowired;
     private FullyQualifiedJavaType listType;
 
     private FullyQualifiedJavaType idGeneratorType;
@@ -85,7 +85,7 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
         super();
         junit = new FullyQualifiedJavaType("org.junit.Test");
         assertType = new FullyQualifiedJavaType("static org.junit.Assert.assertEquals");
-        annotationResource = new FullyQualifiedJavaType("javax.annotation.Resource");
+        annotationAutowired = new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired");
         listType = new FullyQualifiedJavaType("java.util.List");
     }
 
@@ -297,7 +297,7 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
 
         topLevelClass.addImportedType(junit);
         topLevelClass.addImportedType(assertType);
-        topLevelClass.addImportedType(annotationResource);
+        topLevelClass.addImportedType(annotationAutowired);
         topLevelClass.addImportedType(listType);
 
 //        topLevelClass.addImportedType(baseModelType);
@@ -316,7 +316,7 @@ public class Jpa2RepositoryTestPlugin extends PluginAdapter {
         field.setVisibility(JavaVisibility.PRIVATE);
         field.setType(mapperType);
         field.setName(PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()));
-        field.addAnnotation("@Resource");
+        field.addAnnotation("@Autowired");
         topLevelClass.addField(field);
     }
 
