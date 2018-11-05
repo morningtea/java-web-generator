@@ -279,6 +279,7 @@ public class ServicePlugin extends PluginAdapter {
 
         String createdTimeField = GenHelper.getCreatedTimeField(introspectedTable);
         String updatedTimeField = GenHelper.getUpdatedTimeField(introspectedTable);
+        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         
         List<IntrospectedColumn> introspectedColumns = introspectedTable.getAllColumns();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
@@ -297,6 +298,8 @@ public class ServicePlugin extends PluginAdapter {
             } else if (updatedTimeField.equals(introspectedColumn.getJavaProperty())) {
                 serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Date"));
                 method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(updatedTimeField) + "(new Date());");
+            } else if (logicDeletedColumn != null && logicDeletedColumn.getJavaProperty().equals(introspectedColumn.getJavaProperty())) {
+                method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "(false);");
             }
         }
         
