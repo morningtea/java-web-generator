@@ -74,6 +74,11 @@ public abstract class AbstractController {
 		}
 	}
 
+	protected Object getLoginUser() {
+		Subject subject = SecurityUtils.getSubject();
+		return subject.getPrincipal();
+	}
+
 	/**
 	 * 获取国际化资源文件
 	 * 

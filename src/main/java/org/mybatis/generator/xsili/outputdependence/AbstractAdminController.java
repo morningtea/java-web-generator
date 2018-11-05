@@ -14,7 +14,7 @@ public abstract class AbstractAdminController extends AbstractController {
 		Subject subject = SecurityUtils.getSubject();
 		try {
 			return (UpmsUser) subject.getPrincipal();
-		} catch (ClassCastException e) {// 类型不对, 表示登录了其他类型的用户, 那么就会出现该异常
+		} catch (ClassCastException e) {// 类型不对, 表示登录了其他类型的用户
 			// ignore
 			return null;
 		}
