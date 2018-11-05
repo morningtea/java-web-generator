@@ -170,6 +170,15 @@ public class ServicePlugin extends PluginAdapter {
             serviceImplClass.addMethod(updateSelectiveMethodImpl);
         }
 
+        // updateDirect
+        Method updateDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, false);
+        serviceImplClass.addMethod(updateDirectMethodImpl);
+        // updateSelectiveDirect
+        if(introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
+            Method updateSelectiveDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, true);
+            serviceImplClass.addMethod(updateSelectiveDirectMethodImpl);
+        }
+        
         // delete
         IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         if(logicDeletedColumn == null) {
@@ -210,21 +219,9 @@ public class ServicePlugin extends PluginAdapter {
         listMethodImpl.addAnnotation("@Override");
         serviceImplClass.addMethod(listMethodImpl);
 
-        
-        // updateDirect
-        Method updateDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, false);
-        serviceImplClass.addMethod(updateDirectMethodImpl);
-        // updateSelectiveDirect
-        if(introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
-            Method updateSelectiveDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, true);
-            serviceImplClass.addMethod(updateSelectiveDirectMethodImpl);
-        }
-        
         // 生成文件
-
         GeneratedJavaFile interfaceFile = new GeneratedJavaFile(serviceInterface, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
         files.add(interfaceFile);
-        
         GeneratedJavaFile implFile = new GeneratedJavaFile(serviceImplClass, project, context.getProperty(PropertyRegistry.CONTEXT_JAVA_FILE_ENCODING), context.getJavaFormatter());
         files.add(implFile);
     }
