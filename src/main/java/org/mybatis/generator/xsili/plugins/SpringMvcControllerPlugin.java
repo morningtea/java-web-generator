@@ -49,6 +49,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
     private String targetPackage;
     private String targetPackageService;
     private String classNamePrefix;
+    private String requestMappingPrefix;
     private String project;
     private String modelPackage;
 
@@ -125,6 +126,10 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         if(this.classNamePrefix == null) {
             this.classNamePrefix = "";
         }
+        this.requestMappingPrefix = properties.getProperty("requestMappingPrefix");
+        if(this.requestMappingPrefix == null) {
+            this.requestMappingPrefix = "";
+        }
         this.project = properties.getProperty("targetProject");
         this.modelPackage = context.getJavaModelGeneratorConfiguration().getTargetPackage();
 
@@ -182,7 +187,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         // 添加注解
         topLevelClass.addAnnotation("@RestController");
-        topLevelClass.addAnnotation("@RequestMapping(\"/v1/" + PluginUtils.lowerCaseFirstLetter(baseModelType.getShortName()) + "s" + "\")");
+        topLevelClass.addAnnotation("@RequestMapping(\"" + requestMappingPrefix + "/v1/" + PluginUtils.lowerCaseFirstLetter(baseModelType.getShortName()) + "s" + "\")");
 
         // 添加 Mapper引用
         addServiceField(topLevelClass);
@@ -301,7 +306,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
                 // 导入参数类型
                 topLevelClass.addImportedType(parameter.getType());
-                parameter.addAnnotation("@RequestParam(required = false)");
+                parameter.addAnnotation("@RequestParam(required = true)");
                 method.addParameter(parameter);
             }
         }
@@ -394,8 +399,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             method.addBodyLine("// 查询记录");
             String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
-            method.addBodyLine("if(" + modelParamName + " == null) {");
-            method.addBodyLine("return super.error(\"记录不存在\");");
+            method.addBodyLine("if (" + modelParamName + " == null) {");
+            method.addBodyLine("return super.gone();");
             method.addBodyLine("}");
             
             method.addBodyLine("");
@@ -481,7 +486,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 判断是否存在(调用Service get)
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
         method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
-        method.addBodyLine("if(" + modelParamName + " == null) {");
+        method.addBodyLine("if (" + modelParamName + " == null) {");
         method.addBodyLine("return super.gone();");
         method.addBodyLine("}");
         
@@ -543,8 +548,8 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         // 调用Service
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
         method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
-        method.addBodyLine("if(" + modelParamName + " == null) {");
-        method.addBodyLine("return super.error(\"记录不存在\");");
+        method.addBodyLine("if (" + modelParamName + " == null) {");
+        method.addBodyLine("return super.gone();");
         method.addBodyLine("}");
         method.addBodyLine("return super.success(" + modelParamName + ");");
         return method;

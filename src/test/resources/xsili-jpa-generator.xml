@@ -52,6 +52,7 @@
 			<property name="targetPackage" value="com.xsili.business.controller.portal" />
 			<property name="targetPackageService" value="com.xsili.business.service" />
 			<property name="classNamePrefix" value="" />
+			<property name="requestMappingPrefix" value="/portal" />
 			<!-- 接口风格, restful or 传统CRUD -->
 			<property name="enableRestful" value="true" />
 			<!-- 生成put/update方法 -->
@@ -76,6 +77,7 @@
 			<property name="targetPackage" value="com.xsili.business.controller.admin" />
 			<property name="targetPackageService" value="com.xsili.business.service" />
 			<property name="classNamePrefix" value="X" />
+			<property name="requestMappingPrefix" value="/admin" />
 			<!-- 接口风格, restful or 传统CRUD -->
 			<property name="enableRestful" value="true" />
 			<!-- 生成put/update方法 -->
