@@ -149,7 +149,7 @@ public class XsiliJavaBeansUtil extends JavaBeansUtil {
                 getMethod.setStatic(true);
                 getMethod.setReturnType(enumClassType);
                 getMethod.addParameter(new Parameter(FullyQualifiedJavaType.getStringInstance(), "name"));
-                getMethod.addBodyLine("for (" + enumClassType.getShortName() + " type : " + enumClassType.getShortName()
+                getMethod.addBodyLine("for (" + enumClassType.getShortName() + " enums : " + enumClassType.getShortName()
                                       + ".values()) {");
                 getMethod.addBodyLine("if (type.name().equals(name)) {");
                 getMethod.addBodyLine("return type;");
