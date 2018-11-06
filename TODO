@@ -19,3 +19,9 @@
 2. JPA动态条件拼接(Specification)
   重写Specification的toPredicate方法
 3. spring boot jpa 更新部分字段需要添加dao方法, 默认更新全部自动.
+
+---20181106
+有sort字段, 按升序排序
+表名-->java类名, 自动推算
+密码信息字段特殊处理
+mysql json 字段映射到 jpa field类型为object 报错, 改为 string就可以了 (upms_operation_log)
