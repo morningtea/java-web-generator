@@ -308,7 +308,7 @@ public class ServicePlugin extends PluginAdapter {
         } else {
             serviceImplClass.addImportedType(businessExceptionType);
             
-            method.addBodyLine("if(this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ") == 0) {");
+            method.addBodyLine("if (this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ") == 0) {");
             method.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"插入数据库失败\");");
             method.addBodyLine("}");
             method.addBodyLine("return " + modelParamName + ";");
@@ -390,7 +390,7 @@ public class ServicePlugin extends PluginAdapter {
         } else {
             serviceImplClass.addImportedType(businessExceptionType);
             
-            method.addBodyLine("if(this." + getMapper() + mapperMethodName + "(" + modelParamName + ") == 0) {");
+            method.addBodyLine("if (this." + getMapper() + mapperMethodName + "(" + modelParamName + ") == 0) {");
             method.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"记录不存在\");");
             method.addBodyLine("}");
             method.addBodyLine("return " + modelParamName + ";");
@@ -444,7 +444,7 @@ public class ServicePlugin extends PluginAdapter {
         } else {
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getMapper()
                                + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
-            method.addBodyLine("if(" + modelParamName + " != null) {");
+            method.addBodyLine("if (" + modelParamName + " != null) {");
             method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "(true);");
             method.addBodyLine("this.update(" + modelParamName + ");");
             method.addBodyLine("}");
@@ -496,15 +496,27 @@ public class ServicePlugin extends PluginAdapter {
         method.setVisibility(JavaVisibility.PUBLIC);
         method.setName("get");
         method.setReturnType(allFieldModelType);
-
+        // 方法参数
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
         for (Parameter keyParameter : keyParameterList) {
             method.addParameter(keyParameter);
         }
-        String params = PluginUtils.getCallParameters(keyParameterList);
 
         String modelObj = PluginUtils.lowerCaseFirstLetter(allFieldModelType.getShortName());
-        
+
+        // 方法参数为空, 则直接返回
+        String conditionNotNull = "";
+        for (Parameter keyParameter : keyParameterList) {
+            conditionNotNull = conditionNotNull + " || " + keyParameter.getName() + " == null";
+        }
+        conditionNotNull = conditionNotNull.substring(4);
+        method.addBodyLine("if (" + conditionNotNull + ") {");
+        method.addBodyLine("return null;");
+        method.addBodyLine("}");
+        method.addBodyLine("");
+
+        // 查询数据
+        String params = PluginUtils.getCallParameters(keyParameterList);
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
             String keyParams = prepareCallByEntityAsKey(introspectedTable, method, method.getParameters());
             if(StringUtils.isNotBlank(keyParams)) {
@@ -518,14 +530,11 @@ public class ServicePlugin extends PluginAdapter {
         // 逻辑删除
         IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         if(logicDeletedColumn != null) {
-            method.addBodyLine("if(" + modelObj + " != null) {");
-            method.addBodyLine("return " + modelObj + ".getIsDeleted() ? null : " + modelObj + ";");
-            method.addBodyLine("}");
+            method.addBodyLine("if (" + modelObj + " == null || " + modelObj + ".getIsDeleted()) {");
             method.addBodyLine("return null;");
-        } else {
-            method.addBodyLine("return " + modelObj + ";");
+            method.addBodyLine("}");
         }
-        
+        method.addBodyLine("return " + modelObj + ";");
         
         return method;
     }
@@ -689,12 +698,12 @@ public class ServicePlugin extends PluginAdapter {
     	
     	Field querydslJPAQueryFactoryField = new Field();
     	
-		querydslJPAQueryFactoryField.addJavaDocLine("// 简单用法示例, 如: 按班级查看捐款总额");
-		querydslJPAQueryFactoryField.addJavaDocLine("// QUser quser = QUser.user;");
+		querydslJPAQueryFactoryField.addJavaDocLine("// 支持复杂批量修改/删除/查询. 查询用法示例: 按班级查看捐款总额");
+		querydslJPAQueryFactoryField.addJavaDocLine("// QUser qUser = QUser.user;");
 		querydslJPAQueryFactoryField
-				.addJavaDocLine("// List<Tuple> tupleList = jpaQueryFactory.select(quser.class, quser.donation.sum())");
+				.addJavaDocLine("// List<Tuple> tupleList = jpaQueryFactory.select(quser.className, quser.donation.sum())");
 		querydslJPAQueryFactoryField.addJavaDocLine("// .from(quser)");
-		querydslJPAQueryFactoryField.addJavaDocLine("// .groupBy(quser.class)");
+		querydslJPAQueryFactoryField.addJavaDocLine("// .groupBy(quser.className)");
 		querydslJPAQueryFactoryField.addJavaDocLine("// .orderBy(quser.donation.sum().desc())");
 		querydslJPAQueryFactoryField.addJavaDocLine("// .fetch();");
 		querydslJPAQueryFactoryField.addJavaDocLine("// tupleList.forEach(tuple -> {...});");
