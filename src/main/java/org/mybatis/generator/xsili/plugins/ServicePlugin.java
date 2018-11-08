@@ -413,7 +413,7 @@ public class ServicePlugin extends PluginAdapter {
         }
         
         Method method = new Method();
-        method.setName("delete");
+        method.setName("deleteById");
         method.setVisibility(JavaVisibility.PUBLIC);
         method.addJavaDocLine("/** 逻辑删除 */");
         
@@ -464,7 +464,7 @@ public class ServicePlugin extends PluginAdapter {
     private Method deletePhysicallyEntity(IntrospectedTable introspectedTable) {
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
-        method.setName("delete");
+        method.setName("deleteById");
         method.addJavaDocLine("/** 物理删除 */");
 
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
@@ -494,7 +494,7 @@ public class ServicePlugin extends PluginAdapter {
     private Method getEntity(IntrospectedTable introspectedTable) {
         Method method = new Method();
         method.setVisibility(JavaVisibility.PUBLIC);
-        method.setName("get");
+        method.setName("getById");
         method.setReturnType(allFieldModelType);
         // 方法参数
         List<Parameter> keyParameterList = PluginUtils.getPrimaryKeyParameters(introspectedTable);
@@ -527,7 +527,7 @@ public class ServicePlugin extends PluginAdapter {
             method.addBodyLine(allFieldModelType.getShortName() + " " + modelObj + " = this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
         }
         
-        // 逻辑删除
+        // 判断是否已被逻辑删除
         IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
         if(logicDeletedColumn != null) {
             method.addBodyLine("if (" + modelObj + " == null || " + modelObj + ".getIsDeleted()) {");
@@ -771,7 +771,8 @@ public class ServicePlugin extends PluginAdapter {
         if (!introspectedTable.getRules().generatePrimaryKeyClass()) {
             List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
             if (primaryKeyColumns.size() > 1) {
-                String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+                // String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
+                String modelParamName = "new" + allFieldModelType.getShortName();
                 // 填充key参数
                 caller.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = new "
                                    + allFieldModelType.getShortName() + "();");

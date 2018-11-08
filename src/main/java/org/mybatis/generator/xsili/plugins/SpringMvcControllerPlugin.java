@@ -187,7 +187,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         // 添加注解
         topLevelClass.addAnnotation("@RestController");
-        topLevelClass.addAnnotation("@RequestMapping(\"" + requestMappingPrefix + "/v1/" + PluginUtils.lowerCaseFirstLetter(baseModelType.getShortName()) + "s" + "\")");
+        topLevelClass.addAnnotation("@RequestMapping(\"/v1" + requestMappingPrefix + "/" + PluginUtils.lowerCaseFirstLetter(baseModelType.getShortName()) + "s" + "\")");
 
         // 添加 Mapper引用
         addServiceField(topLevelClass);
@@ -588,7 +588,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         method.addParameter(limitParameter);
 
         // 调用Service
-        method.addBodyLine(pageType.getShortName() + "<" + allFieldModelType.getShortName() + "> page = " + getService()
+        method.addBodyLine(pageType.getShortName() + "<" + allFieldModelType.getShortName() + "> page = this." + getService()
                            + "list(pageNum, pageSize);");
         method.addBodyLine("return super.success(page);");
         return method;
