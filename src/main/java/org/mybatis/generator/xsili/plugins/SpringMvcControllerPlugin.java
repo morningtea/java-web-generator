@@ -387,7 +387,11 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             		&& !updatedTimeField.equals(javaProperty)
             		&& !logicDeletedField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
-                parameter.addAnnotation("@RequestParam(required = false)");
+                if (isSelective) {
+                    parameter.addAnnotation("@RequestParam(required = false)");
+                } else {
+                    parameter.addAnnotation("@RequestParam(required = true)");
+                }
                 method.addParameter(parameter);
                 notKeyParameters.add(parameter);
             }
@@ -398,7 +402,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             // 查询记录, jpa2默认更新entity的全部字段, 所以先查询数据库后赋值
             method.addBodyLine("// 查询记录");
             String keyParams = prepareCallByKey(introspectedTable, method, keyParameters);
-            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "getById(" + keyParams + ");");
             method.addBodyLine("if (" + modelParamName + " == null) {");
             method.addBodyLine("return super.gone();");
             method.addBodyLine("}");
@@ -485,7 +489,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         
         // 判断是否存在(调用Service get)
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
-        method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
+        method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "getById(" + keyParams + ");");
         method.addBodyLine("if (" + modelParamName + " == null) {");
         method.addBodyLine("return super.gone();");
         method.addBodyLine("}");
@@ -501,7 +505,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
         }
         
         // 调用Service delete
-        method.addBodyLine("this." + getService() + "delete(" + keyParams + ");");
+        method.addBodyLine("this." + getService() + "deleteById(" + keyParams + ");");
         
 //        if (GenHelper.hasLogicDeletedField(introspectedTable)) {
 //            method.addBodyLine("this." + getService() + "deleteLogically(" + keyParams + ");");
@@ -547,7 +551,7 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
 
         // 调用Service
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
-        method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "get(" + keyParams + ");");
+        method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getService() + "getById(" + keyParams + ");");
         method.addBodyLine("if (" + modelParamName + " == null) {");
         method.addBodyLine("return super.gone();");
         method.addBodyLine("}");
