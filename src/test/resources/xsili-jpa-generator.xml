@@ -38,8 +38,8 @@
         <!-- service代码生成 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.ServicePlugin">
 			<property name="targetProject" value="src/main/java" />
-			<property name="targetPackage" value="com.xsili.business.service" />
-			<property name="targetPackageImpl" value="com.xsili.business.service.impl" />
+			<property name="targetPackage" value="com.benma.business.service" />
+			<property name="targetPackageImpl" value="com.benma.business.service.impl" />
 			<!-- 分页类型 -->
 			<property name="page" value="org.mybatis.generator.xsili.outputdependence.page.SimplePage" />
 			<!-- 选填, id生成器. 主键是字符类型且idGenerator!=null, 则调用 idGenerator#generateId() 设置主键值 -->
@@ -49,8 +49,8 @@
         <!-- portal controller代码生成 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.SpringMvcControllerPlugin">
 			<property name="targetProject" value="src/main/java" />
-			<property name="targetPackage" value="com.xsili.business.controller.portal" />
-			<property name="targetPackageService" value="com.xsili.business.service" />
+			<property name="targetPackage" value="com.benma.business.controller.portal" />
+			<property name="targetPackageService" value="com.benma.business.service" />
 			<property name="classNamePrefix" value="" />
 			<property name="requestMappingPrefix" value="/portal" />
 			<!-- 接口风格, restful or 传统CRUD -->
@@ -74,8 +74,8 @@
         <!-- admin controller代码生成 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.SpringMvcControllerPlugin">
 			<property name="targetProject" value="src/main/java" />
-			<property name="targetPackage" value="com.xsili.business.controller.admin" />
-			<property name="targetPackageService" value="com.xsili.business.service" />
+			<property name="targetPackage" value="com.benma.business.controller.admin" />
+			<property name="targetPackageService" value="com.benma.business.service" />
 			<property name="classNamePrefix" value="X" />
 			<property name="requestMappingPrefix" value="/admin" />
 			<!-- 接口风格, restful or 传统CRUD -->
@@ -99,7 +99,7 @@
 		<!-- mapper测试代码生成  targetPackage与对应的实体生成保持一致 -->
 		<plugin type="org.mybatis.generator.xsili.plugins.testplugins.Jpa2RepositoryTestPlugin">
 			<property name="targetProject" value="src/test/java" />
-			<property name="targetPackage" value="com.xsili.test.business.repository" />
+			<property name="targetPackage" value="com.benma.test.business.repository" />
 			<!-- 测试基类 -->
 			<property name="superTestCase" value="org.mybatis.generator.xsili.outputdependence.test.BaseTest" />
 		</plugin>
@@ -130,13 +130,13 @@
 		</javaTypeResolver>
 		
 		<!-- 实体类对象 -->
-		<javaModelGenerator targetPackage="com.xsili.business.model" targetProject="src/main/java">
+		<javaModelGenerator targetPackage="com.benma.business.model" targetProject="src/main/java">
 			<property name="enableSubPackages" value="true" />
 			<property name="trimStrings" value="true" />
 		</javaModelGenerator>
 		
 		<!-- jpa2 Repository.java, type: REPOSITORY  -->
-		<javaClientGenerator type="REPOSITORY" targetPackage="com.xsili.business.repository" targetProject="src/main/java">
+		<javaClientGenerator type="REPOSITORY" targetPackage="com.benma.business.repository" targetProject="src/main/java">
 			<property name="enableSubPackages" value="true" />
 		</javaClientGenerator>
 		

@@ -25,3 +25,4 @@
 表名-->java类名, 自动推算
 密码信息字段特殊处理
 mysql json 字段映射到 jpa field类型为object 报错, 改为 string就可以了 (upms_operation_log)
+枚举类型, 自动组合提示合法项
