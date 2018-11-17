@@ -16,6 +16,10 @@
 		<property name="ownerField" value="userId"/>
 		<!-- 选填, 业务异常 -->
 		<property name="businessExceptionQualifiedName" value="org.mybatis.generator.xsili.outputdependence.exception.BusinessException"/>
+		<!-- model基类 -->
+		<property name="baseEntityQualifiedName" value="org.mybatis.generator.xsili.outputdependence.base.jpa.BaseEntity"/>
+		<!-- dao基类 -->
+		<property name="baseDaoQualifiedName" value="org.mybatis.generator.xsili.outputdependence.base.jpa.BaseRepository"/>
 		
 		<!-- 更多配置参考 PropertyRegistry -->
 		<property name="javaFileEncoding" value="UTF-8"/>
@@ -40,6 +44,10 @@
 			<property name="targetProject" value="src/main/java" />
 			<property name="targetPackage" value="com.benma.business.service" />
 			<property name="targetPackageImpl" value="com.benma.business.service.impl" />
+			<!-- 父接口 -->
+			<property name="superInterface" value="org.mybatis.generator.xsili.outputdependence.base.jpa.BaseService" />
+			<!-- 父类 -->
+			<property name="superClass" value="org.mybatis.generator.xsili.outputdependence.base.jpa.BaseServiceImpl" />
 			<!-- 分页类型 -->
 			<property name="page" value="org.mybatis.generator.xsili.outputdependence.page.SimplePage" />
 			<!-- 选填, id生成器. 主键是字符类型且idGenerator!=null, 则调用 idGenerator#generateId() 设置主键值 -->

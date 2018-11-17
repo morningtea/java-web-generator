@@ -304,9 +304,13 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             		&& !updatedTimeField.equals(javaProperty) 
             		&& !logicDeletedField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
+                if(introspectedColumn.isNullable()) {
+                    parameter.addAnnotation("@RequestParam(required = false)");
+                } else {
+                    parameter.addAnnotation("@RequestParam(required = true)");
+                }
                 // 导入参数类型
                 topLevelClass.addImportedType(parameter.getType());
-                parameter.addAnnotation("@RequestParam(required = true)");
                 method.addParameter(parameter);
             }
         }
@@ -387,11 +391,12 @@ public class SpringMvcControllerPlugin extends PluginAdapter {
             		&& !updatedTimeField.equals(javaProperty)
             		&& !logicDeletedField.equals(javaProperty)) {
                 Parameter parameter = PluginUtils.buildParameter(introspectedColumn, topLevelClass, fields);
-                if (isSelective) {
+                if (introspectedColumn.isNullable()) {
                     parameter.addAnnotation("@RequestParam(required = false)");
                 } else {
                     parameter.addAnnotation("@RequestParam(required = true)");
-                }
+                } // 导入参数类型
+                topLevelClass.addImportedType(parameter.getType());
                 method.addParameter(parameter);
                 notKeyParameters.add(parameter);
             }

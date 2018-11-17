@@ -21,8 +21,46 @@
 3. spring boot jpa 更新部分字段需要添加dao方法, 默认更新全部自动.
 
 ---20181106
-有sort字段, 按升序排序
+有isEnabled的处理
+有sort字段, 按升序排序(controller/service)
 表名-->java类名, 自动推算
 密码信息字段特殊处理
 mysql json 字段映射到 jpa field类型为object 报错, 改为 string就可以了 (upms_operation_log)
 枚举类型, 自动组合提示合法项
+controller create/update 字段是否必填需要根据数据库is null/not null来判断
+Service org.springframework.transaction.annotation.Transactional
+@Service("baseAreaCodeService") --> @Service
+
+
+shiro
+没有登录/没有权限导致 No SecurityManager accessible to the calling code
+
+Service, 给不允许为空, 又有默认值的字段设置值, 马勒戈壁, 数据库的默认值用不了吗
+或者, controller create false的字段, 需要判断是否有值, 没有则设置默认值
+或者, 去掉entity field对应的not null限制
+######
+1.insert all, fill default value if null
+2.update null, fill security field with db value
+3.update not null, patch,some field
+
+添加Service基类，updateAll，updateNotNull 都放到基类
+把deleteById getById 也添加到Service基类
+create 则不需要放到Service基类
+所有表必须有 id 创建时间 修改时间 逻辑删除 这4个字段
+
+具体的Service, update方法, 提示添加如校验等逻辑
+    @Override
+    public Help update(Help help) {
+        Help exist = super.getById(help.getId());
+        help.setGmtCreate(exist.getGmtCreate());
+        // 其他不允许修改的字段
+        return super.updateAll(help);
+    }
+
+
+###### 重要
+Service拆分jpa / mybatis
+    
+updateDerective 先查询值, 后赋值更新, 只赋值not null字段
+支持, 只插入有值的字段
+hibernate几种状态

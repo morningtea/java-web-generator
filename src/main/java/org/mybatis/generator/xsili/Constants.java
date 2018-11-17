@@ -18,5 +18,8 @@ public class Constants {
     public static final String KEY_OWNER_FIELD = "ownerField";
     
     public static final String KEY_BUSINESS_EXCEPTION_QUALIFIED_NAME = "businessExceptionQualifiedName";
+    
+    public static final String key_base_entity_qualified_name = "baseEntityQualifiedName";
+    public static final String key_base_dao_class_qualified_name = "baseDaoQualifiedName";
 
 }

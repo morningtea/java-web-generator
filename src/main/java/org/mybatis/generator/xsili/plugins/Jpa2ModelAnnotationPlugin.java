@@ -64,6 +64,7 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
 
     @Override
     public boolean modelBaseRecordClassGenerated(TopLevelClass topLevelClass, IntrospectedTable introspectedTable) {
+        // 添加注解
         topLevelClass.addImportedType(ANNOTATION_CLASS_ENTITY);
         topLevelClass.addAnnotation("@" + ANNOTATION_CLASS_ENTITY.getShortName());
 
@@ -74,6 +75,12 @@ public class Jpa2ModelAnnotationPlugin extends PluginAdapter {
                                     + introspectedTable.getFullyQualifiedTable().getIntrospectedTableName().toLowerCase()
                                     + "\")");
 
+        // 添加父类继承
+        FullyQualifiedJavaType superClassType = GenHelper.getBaseEntityType(getContext());
+        if(superClassType != null) {
+            topLevelClass.addImportedType(superClassType);
+            topLevelClass.setSuperClass(superClassType);
+        }
         return super.modelBaseRecordClassGenerated(topLevelClass, introspectedTable);
     }
 

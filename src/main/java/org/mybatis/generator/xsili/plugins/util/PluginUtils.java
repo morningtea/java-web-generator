@@ -254,7 +254,7 @@ public class PluginUtils {
      * @return
      */
     public static String getTypeParamName(FullyQualifiedJavaType javaType) {
-        return PluginUtils.lowerCaseFirstLetter(javaType.getShortName());
+        return PluginUtils.lowerCaseFirstLetter(javaType.getShortNameWithoutTypeArguments());
     }
 
     /**

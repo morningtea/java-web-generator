@@ -38,6 +38,9 @@ public class ServicePlugin extends PluginAdapter {
     private FullyQualifiedJavaType pageType;
     private FullyQualifiedJavaType idGeneratorType;
 
+    private FullyQualifiedJavaType superInterfaceType;
+    private FullyQualifiedJavaType superClassType;
+    
     private FullyQualifiedJavaType serviceInterfaceType;
     private FullyQualifiedJavaType serviceType;
     private FullyQualifiedJavaType mapperType;
@@ -54,10 +57,6 @@ public class ServicePlugin extends PluginAdapter {
     
     private FullyQualifiedJavaType slf4jLogger = new FullyQualifiedJavaType("org.slf4j.Logger");
     private FullyQualifiedJavaType slf4jLoggerFactory = new FullyQualifiedJavaType("org.slf4j.LoggerFactory");
-    
-//    private FullyQualifiedJavaType annotationPersistenceContext = new FullyQualifiedJavaType("javax.persistence.PersistenceContext");
-//    private FullyQualifiedJavaType entityManagerType = new FullyQualifiedJavaType("javax.persistence.EntityManager");
-    private FullyQualifiedJavaType querydslJPAQueryFactoryType = new FullyQualifiedJavaType("com.querydsl.jpa.impl.JPAQueryFactory");
     
     private FullyQualifiedJavaType annotationAutowired = new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired");
     private FullyQualifiedJavaType annotationService = new FullyQualifiedJavaType("org.springframework.stereotype.Service");
@@ -103,6 +102,19 @@ public class ServicePlugin extends PluginAdapter {
         modelCriteriaType = new FullyQualifiedJavaType(introspectedTable.getExampleType());
         modelSubCriteriaType = new FullyQualifiedJavaType(introspectedTable.getExampleType() + ".Criteria");
 
+        // 初始化Service父类/接口
+        // 注意: 需要在allFieldModelType之后初始化
+        String superInterface = properties.getProperty("superInterface");
+        if(StringUtils.isNotBlank(superInterface)) {
+            superInterfaceType = new FullyQualifiedJavaType(superInterface);
+            superInterfaceType.addTypeArgument(allFieldModelType);
+        }
+        String superClass = properties.getProperty("superClass");
+        if(StringUtils.isNotBlank(superClass)) {
+            superClassType = new FullyQualifiedJavaType(superClass);
+            superClassType.addTypeArgument(allFieldModelType);
+        }
+        
         List<GeneratedJavaFile> files = new ArrayList<GeneratedJavaFile>();
         Interface serviceInterface = new Interface(serviceInterfaceType);
         TopLevelClass serviceImplClass = new TopLevelClass(serviceType);
@@ -129,20 +141,50 @@ public class ServicePlugin extends PluginAdapter {
                                      List<GeneratedJavaFile> files) {
         // service接口
         serviceInterface.setVisibility(JavaVisibility.PUBLIC);
-        
         // service实现类
         serviceImplClass.setVisibility(JavaVisibility.PUBLIC);
-        // 设置实现的接口
+        
+        // 设置Interface继承的接口
+        if(superInterfaceType != null) {
+            serviceInterface.addSuperInterface(superInterfaceType);
+            // serviceInterface.addImportedType(superInterfaceType);
+        }
+        // 设置Impl继承的基类
+        if(superClassType != null) {
+            serviceImplClass.setSuperClass(superClassType);
+            // serviceImplClass.addImportedType(superClassType);
+        }
+        // 设置Impl实现的接口
         serviceImplClass.addSuperInterface(serviceInterfaceType);
+        
         // 添加注解
         serviceImplClass.addAnnotation("@Service(\"" + PluginUtils.lowerCaseFirstLetter(serviceInterfaceType.getShortName()) + "\")");
         serviceImplClass.addImportedType(annotationService);
+        
         // 日志
         addLoggerField(serviceImplClass);
-        // 添加 Mapper引用
-        addMapperField(serviceImplClass);
-        // 添加 querydsl相关
-        addQuerydsl(serviceImplClass);
+        
+        // 添加构造方法
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            // 参数
+            FullyQualifiedJavaType baseDaoType = GenHelper.getBaseDaoType(getContext());
+            String baseDaoName = PluginUtils.getTypeParamName(baseDaoType);
+            
+            // 构造方法
+            Method method = new Method();
+            method.setConstructor(true);
+            method.setVisibility(JavaVisibility.PUBLIC);
+            method.setName(serviceImplClass.getType().getShortNameWithoutTypeArguments());
+            method.addParameter(new Parameter(mapperType, baseDaoName));
+
+            serviceImplClass.addMethod(method);
+            
+            method.addBodyLine("super("+baseDaoName+");");
+        } else {
+            // 添加 Mapper引用
+            addMapperField(serviceImplClass);
+        }
+        
 
         // 方法
         // add
@@ -161,7 +203,7 @@ public class ServicePlugin extends PluginAdapter {
         updateMethodImpl.addAnnotation("@Override");
         serviceImplClass.addMethod(updateMethodImpl);
         // updateSelective
-        if(introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
+        if (introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
             Method updateSelectiveMethod = updateEntity(serviceImplClass, introspectedTable, true);
             updateSelectiveMethod.removeBodyLines();
             serviceInterface.addMethod(updateSelectiveMethod);
@@ -170,46 +212,52 @@ public class ServicePlugin extends PluginAdapter {
             serviceImplClass.addMethod(updateSelectiveMethodImpl);
         }
 
-        // updateDirect
-        Method updateDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, false);
-        serviceImplClass.addMethod(updateDirectMethodImpl);
-        // updateSelectiveDirect
-        if(introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
-            Method updateSelectiveDirectMethodImpl = updateDirect(serviceImplClass, introspectedTable, true);
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.MYBATIS3) {
+            // updateDirect
+            Method updateDirectMethodImpl = updateDirectMybatis(serviceImplClass, introspectedTable, false);
+            serviceImplClass.addMethod(updateDirectMethodImpl);
+            // updateSelectiveDirect
+            Method updateSelectiveDirectMethodImpl = updateDirectMybatis(serviceImplClass, introspectedTable, true);
             serviceImplClass.addMethod(updateSelectiveDirectMethodImpl);
         }
         
         // delete
-        IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
-        if(logicDeletedColumn == null) {
-        	// deletePhysically
-        	Method deletePhysicallyMethod = deletePhysicallyEntity(introspectedTable);
-        	deletePhysicallyMethod.removeBodyLines();
-        	serviceInterface.addMethod(deletePhysicallyMethod);
-        	Method deletePhysicallyMethodImpl = deletePhysicallyEntity(introspectedTable);
-        	deletePhysicallyMethodImpl.addAnnotation("@Override");
-        	serviceImplClass.addMethod(deletePhysicallyMethodImpl);
-        } else {
-        	// deleteLogically
-        	Method deleteLogicallyMethod = deleteLogicallyEntity(introspectedTable, serviceImplClass);
-        	if (deleteLogicallyMethod != null) {
-        		deleteLogicallyMethod.removeBodyLines();
-        		serviceInterface.addMethod(deleteLogicallyMethod);
-        	}
-        	Method deleteLogicallyMethodImpl = deleteLogicallyEntity(introspectedTable, serviceImplClass);
-        	if (deleteLogicallyMethodImpl != null) {
-        		deleteLogicallyMethodImpl.addAnnotation("@Override");
-        		serviceImplClass.addMethod(deleteLogicallyMethodImpl);
-        	}
+        // jpa2, deleteById方法放到了基类(#id1)
+        if(hasMultiKeys(introspectedTable) || introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
+            IntrospectedColumn logicDeletedColumn = GenHelper.getLogicDeletedColumn(introspectedTable);
+            if(logicDeletedColumn == null) {
+                // deletePhysically
+                Method deletePhysicallyMethod = deletePhysicallyEntity(introspectedTable);
+                deletePhysicallyMethod.removeBodyLines();
+                serviceInterface.addMethod(deletePhysicallyMethod);
+                Method deletePhysicallyMethodImpl = deletePhysicallyEntity(introspectedTable);
+                deletePhysicallyMethodImpl.addAnnotation("@Override");
+                serviceImplClass.addMethod(deletePhysicallyMethodImpl);
+            } else {
+                // deleteLogically
+                Method deleteLogicallyMethod = deleteLogicallyEntity(introspectedTable, serviceImplClass);
+                if (deleteLogicallyMethod != null) {
+                    deleteLogicallyMethod.removeBodyLines();
+                    serviceInterface.addMethod(deleteLogicallyMethod);
+                }
+                Method deleteLogicallyMethodImpl = deleteLogicallyEntity(introspectedTable, serviceImplClass);
+                if (deleteLogicallyMethodImpl != null) {
+                    deleteLogicallyMethodImpl.addAnnotation("@Override");
+                    serviceImplClass.addMethod(deleteLogicallyMethodImpl);
+                }
+            }
         }
 
         // get
-        Method getMethod = getEntity(introspectedTable);
-        getMethod.removeBodyLines();
-        serviceInterface.addMethod(getMethod);
-        Method getMethodImpl = getEntity(introspectedTable);
-        getMethodImpl.addAnnotation("@Override");
-        serviceImplClass.addMethod(getMethodImpl);
+        // jpa2, getById方法放到了基类(#id1)
+        if(hasMultiKeys(introspectedTable) || introspectedTable.getTargetRuntime() != TargetRuntime.JPA2) {
+            Method getMethod = getEntity(introspectedTable);
+            getMethod.removeBodyLines();
+            serviceInterface.addMethod(getMethod);
+            Method getMethodImpl = getEntity(introspectedTable);
+            getMethodImpl.addAnnotation("@Override");
+            serviceImplClass.addMethod(getMethodImpl);
+        }
 
         // list
         Method listMethod = listEntity(introspectedTable, serviceImplClass);
@@ -243,17 +291,17 @@ public class ServicePlugin extends PluginAdapter {
         }
 
         // 接口
-//        serviceInterface.addImportedType(baseModelType);
+        // serviceInterface.addImportedType(baseModelType);
         serviceInterface.addImportedType(allFieldModelType);
         serviceInterface.addImportedType(pageType);
 
         // 实现类
+        serviceImplClass.addImportedType(serviceInterfaceType);
         serviceImplClass.addImportedType(slf4jLogger);
         serviceImplClass.addImportedType(slf4jLoggerFactory);
 
-        serviceImplClass.addImportedType(serviceInterfaceType);
         serviceImplClass.addImportedType(mapperType);
-//        serviceImplClass.addImportedType(baseModelType);
+        // serviceImplClass.addImportedType(baseModelType);
         serviceImplClass.addImportedType(allFieldModelType);
 
         serviceImplClass.addImportedType(annotationService);
@@ -304,11 +352,11 @@ public class ServicePlugin extends PluginAdapter {
         }
         
         if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            method.addBodyLine("return this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ");");
+            method.addBodyLine("return " + getMapper(introspectedTable) + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ");");
         } else {
             serviceImplClass.addImportedType(businessExceptionType);
             
-            method.addBodyLine("if (this." + getMapper() + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ") == 0) {");
+            method.addBodyLine("if (" + getMapper(introspectedTable) + getMapperMethodName(introspectedTable, "create") + "(" + modelParamName + ") == 0) {");
             method.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"插入数据库失败\");");
             method.addBodyLine("}");
             method.addBodyLine("return " + modelParamName + ";");
@@ -331,28 +379,37 @@ public class ServicePlugin extends PluginAdapter {
         method.addParameter(new Parameter(allFieldModelType, modelParamName));
 
         String serviceMethodName = "";
-        if(isSelective) {
-        	if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-        		serviceMethodName = "updateDirect";
-        	} else {
-        		serviceMethodName = "updateSelectiveDirect";
-        	}
-        } else {
-            serviceMethodName = "updateDirect";
+        if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            if (isSelective) {
+                serviceMethodName = "super.updateNotNull";
+            } else {
+                serviceMethodName = "super.updateAll";
+            }
         }
-        
-        method.addBodyLine("return this." + serviceMethodName + "(" + modelParamName + ");");
+        if (introspectedTable.getTargetRuntime() == TargetRuntime.MYBATIS3) {
+            if (isSelective) {
+                serviceMethodName = "this.updateSelectiveDirect";
+            } else {
+                serviceMethodName = "this.updateDirect";
+            }
+        }
+
+        method.addBodyLine("return " + serviceMethodName + "(" + modelParamName + ");");
         return method;
     }
     
     /**
-     * update
+     * updateDirect
      * 
      * @param serviceImplClass
      * @param introspectedTable
      * @return
      */
-    private Method updateDirect(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable, boolean isSelective) {
+    private Method updateDirectMybatis(TopLevelClass serviceImplClass, IntrospectedTable introspectedTable, boolean isSelective) {
+        if(introspectedTable.getTargetRuntime() != TargetRuntime.MYBATIS3) {
+            throw new RuntimeException("updateDirectMybatis only support Mybatis");
+        }
+        
         String modelParamName = PluginUtils.getTypeParamName(allFieldModelType);
 
         Method method = new Method();
@@ -385,16 +442,11 @@ public class ServicePlugin extends PluginAdapter {
             mapperMethodName = getMapperMethodName(introspectedTable, "update");
         }
         
-        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
-            method.addBodyLine("return this." + getMapper() + mapperMethodName + "(" + modelParamName + ");");
-        } else {
-            serviceImplClass.addImportedType(businessExceptionType);
-            
-            method.addBodyLine("if (this." + getMapper() + mapperMethodName + "(" + modelParamName + ") == 0) {");
-            method.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"记录不存在\");");
-            method.addBodyLine("}");
-            method.addBodyLine("return " + modelParamName + ";");
-        }
+        serviceImplClass.addImportedType(businessExceptionType);
+        method.addBodyLine("if (" + getMapper(introspectedTable) + mapperMethodName + "(" + modelParamName + ") == 0) {");
+        method.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"记录不存在\");");
+        method.addBodyLine("}");
+        method.addBodyLine("return " + modelParamName + ";");
 
         return method;
     }
@@ -435,14 +487,14 @@ public class ServicePlugin extends PluginAdapter {
         if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
             // 导入依赖类
             serviceImplClass.addImportedType(new FullyQualifiedJavaType("java.util.Optional"));
-            method.addBodyLine("Optional<" + allFieldModelType.getShortName() + "> " + modelParamName + " = this."
-                               + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
+            method.addBodyLine("Optional<" + allFieldModelType.getShortName() + "> " + modelParamName + " = "
+                               + getMapper(introspectedTable) + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
             method.addBodyLine(modelParamName + ".ifPresent((v) -> {");
             method.addBodyLine("v.set" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "(true);");
             method.addBodyLine("this.updateDirect(v);");
             method.addBodyLine("});");
         } else {
-            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = this." + getMapper()
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelParamName + " = " + getMapper(introspectedTable)
                                + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
             method.addBodyLine("if (" + modelParamName + " != null) {");
             method.addBodyLine(modelParamName + ".set" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "(true);");
@@ -480,7 +532,7 @@ public class ServicePlugin extends PluginAdapter {
                 params = keyParams;
             }
         }
-        method.addBodyLine("this." + getMapper() + getMapperMethodName(introspectedTable, "delete") + "(" + params + ");");
+        method.addBodyLine(getMapper(introspectedTable) + getMapperMethodName(introspectedTable, "delete") + "(" + params + ");");
         return method;
     }
 
@@ -522,9 +574,9 @@ public class ServicePlugin extends PluginAdapter {
             if(StringUtils.isNotBlank(keyParams)) {
                 params = keyParams;
             }
-            method.addBodyLine(allFieldModelType.getShortName() + " " + modelObj + " = this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ").orElse(null);");
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelObj + " = " + getMapper(introspectedTable) + getMapperMethodName(introspectedTable, "get") + "(" + params + ").orElse(null);");
         } else {
-            method.addBodyLine(allFieldModelType.getShortName() + " " + modelObj + " = this." + getMapper() + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
+            method.addBodyLine(allFieldModelType.getShortName() + " " + modelObj + " = " + getMapper(introspectedTable) + getMapperMethodName(introspectedTable, "get") + "(" + params + ");");
         }
         
         // 判断是否已被逻辑删除
@@ -592,7 +644,7 @@ public class ServicePlugin extends PluginAdapter {
             method.addBodyLine("cri.and" + PluginUtils.upperCaseFirstLetter(logicDeletedColumn.getJavaProperty()) + "EqualTo(false);");
         }
 
-        method.addBodyLine("List<" + allFieldModelType.getShortName() + "> list = " + getMapper()
+        method.addBodyLine("List<" + allFieldModelType.getShortName() + "> list = " + getMapper(introspectedTable)
                            + "selectByExample(criteria);");
         method.addBodyLine("return " + pageType.getShortName() + ".buildPage(list, criteria);");
         return method;
@@ -643,7 +695,7 @@ public class ServicePlugin extends PluginAdapter {
         
         method.addBodyLine("");
         method.addBodyLine("Pageable pageable = PageRequest.of(pageNum, pageSize, Sort.by(new Order(Direction.DESC, \"id\")));");
-        method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = " + getMapper() + "findAll(predicate, pageable);");
+        method.addBodyLine("Page<" + allFieldModelType.getShortName() + "> page = " + getMapper(introspectedTable) + "findAll(predicate, pageable);");
         method.addBodyLine("return " + pageType.getShortName() + ".buildPage(page);");
         
         return method;
@@ -675,49 +727,18 @@ public class ServicePlugin extends PluginAdapter {
         Field field = new Field();
         field.setVisibility(JavaVisibility.PRIVATE);
         field.setType(mapperType);
-        field.setName(PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()));
+        field.setName(PluginUtils.lowerCaseFirstLetter(mapperType.getShortNameWithoutTypeArguments()));
         field.addAnnotation("@" + annotationAutowired.getShortName());
         serviceImplClass.addField(field);
     }
-    
-    /**
-     * 添加 querydsl相关
-     */
-    private void addQuerydsl(TopLevelClass serviceImplClass) {
-//    	serviceImplClass.addImportedType(annotationPersistenceContext);
-//    	serviceImplClass.addImportedType(entityManagerType);
-    	serviceImplClass.addImportedType(querydslJPAQueryFactoryType);
-    	
-//    	Field entityManagerField = new Field();
-//    	entityManagerField.setVisibility(JavaVisibility.PRIVATE);
-//    	entityManagerField.setType(entityManagerType);
-//    	entityManagerField.setName(PluginUtils.lowerCaseFirstLetter(entityManagerType.getShortName()));
-//    	entityManagerField.addAnnotation("@" + annotationAutowired.getShortName());
-//    	entityManagerField.addAnnotation("@" + annotationPersistenceContext.getShortName());
-//    	serviceImplClass.addField(entityManagerField);
-    	
-    	Field querydslJPAQueryFactoryField = new Field();
-    	
-		querydslJPAQueryFactoryField.addJavaDocLine("// 支持复杂批量修改/删除/查询. 查询用法示例: 按班级查看捐款总额");
-		querydslJPAQueryFactoryField.addJavaDocLine("// QUser qUser = QUser.user;");
-		querydslJPAQueryFactoryField
-				.addJavaDocLine("// List<Tuple> tupleList = jpaQueryFactory.select(quser.className, quser.donation.sum())");
-		querydslJPAQueryFactoryField.addJavaDocLine("// .from(quser)");
-		querydslJPAQueryFactoryField.addJavaDocLine("// .groupBy(quser.className)");
-		querydslJPAQueryFactoryField.addJavaDocLine("// .orderBy(quser.donation.sum().desc())");
-		querydslJPAQueryFactoryField.addJavaDocLine("// .fetch();");
-		querydslJPAQueryFactoryField.addJavaDocLine("// tupleList.forEach(tuple -> {...});");
-    	
-    	querydslJPAQueryFactoryField.setVisibility(JavaVisibility.PRIVATE);
-    	querydslJPAQueryFactoryField.setType(querydslJPAQueryFactoryType);
-    	querydslJPAQueryFactoryField.setName("jpaQueryFactory");
-    	querydslJPAQueryFactoryField.addAnnotation("@SuppressWarnings(\"unused\")");
-    	querydslJPAQueryFactoryField.addAnnotation("@" + annotationAutowired.getShortName());
-    	serviceImplClass.addField(querydslJPAQueryFactoryField);
-    }
 
-    private String getMapper() {
-        return PluginUtils.lowerCaseFirstLetter(mapperType.getShortName()) + ".";
+    private String getMapper(IntrospectedTable introspectedTable) {
+        if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            FullyQualifiedJavaType baseDaoType = GenHelper.getBaseDaoType(getContext());
+            return "super." + PluginUtils.getTypeParamName(baseDaoType) + ".";
+        } else {
+            return "this." + PluginUtils.lowerCaseFirstLetter(mapperType.getShortNameWithoutTypeArguments()) + ".";
+        }
     }
     
     
@@ -743,7 +764,7 @@ public class ServicePlugin extends PluginAdapter {
         } else if (type.equals("updateSelective")) {
             if (introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
                 // TODO jpa2 updateSelective
-                return "saveAndFlush";
+                return "updateNotNull";
             } else {
                 return "updateByPrimaryKeySelective";
             }
@@ -755,7 +776,11 @@ public class ServicePlugin extends PluginAdapter {
             throw new IllegalArgumentException("参数type错误, type: " + type);
         }
     }
-    
+
+    private boolean hasMultiKeys(IntrospectedTable introspectedTable) {
+        List<IntrospectedColumn> primaryKeyColumns = introspectedTable.getPrimaryKeyColumns();
+        return primaryKeyColumns.size() > 1;
+    }
 
     /**
      * 如果没有生成主键类, 并且是复合主键, 则以allFieldModel填充复合主键, 并返回调用参数<br>

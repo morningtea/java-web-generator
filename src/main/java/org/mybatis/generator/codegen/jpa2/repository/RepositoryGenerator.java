@@ -35,7 +35,6 @@ import org.mybatis.generator.codegen.mybatis3.javamapper.elements.AbstractJavaMa
 import org.mybatis.generator.codegen.mybatis3.javamapper.elements.SelectByExampleWithoutBLOBsMethodGenerator;
 import org.mybatis.generator.config.PropertyRegistry;
 import org.mybatis.generator.xsili.GenHelper;
-import org.mybatis.generator.xsili.plugins.util.PluginUtils;
 
 /**
  * 
@@ -75,29 +74,30 @@ public class RepositoryGenerator extends AbstractJavaClientGenerator {
         FullyQualifiedJavaType modelType = introspectedTable.getRules().calculateAllFieldsClass();
         interfaze.addImportedType(modelType);
 
-        FullyQualifiedJavaType jpaRepositoryType = new FullyQualifiedJavaType("org.springframework.data.jpa.repository.JpaRepository");
-        jpaRepositoryType.addTypeArgument(modelType);
-        jpaRepositoryType.addTypeArgument(PluginUtils.calculateKeyType(introspectedTable));
-        interfaze.addSuperInterface(new FullyQualifiedJavaType(jpaRepositoryType.getShortName()));
-        interfaze.addImportedType(jpaRepositoryType);
+        // baseRepository
+        FullyQualifiedJavaType baseRepositoryType = GenHelper.getBaseDaoType(getContext());
+        baseRepositoryType.addTypeArgument(modelType);
+        interfaze.addSuperInterface(new FullyQualifiedJavaType(baseRepositoryType.getShortName()));
+        interfaze.addImportedType(baseRepositoryType);
 
-        FullyQualifiedJavaType querydslPEType = new FullyQualifiedJavaType("org.springframework.data.querydsl.QuerydslPredicateExecutor");
-        querydslPEType.addTypeArgument(modelType);
-        interfaze.addSuperInterface(new FullyQualifiedJavaType(querydslPEType.getShortName()));
-        interfaze.addImportedType(querydslPEType);
+        // jpaRepositoryType
+//        FullyQualifiedJavaType jpaRepositoryType = new FullyQualifiedJavaType("org.springframework.data.jpa.repository.JpaRepository");
+//        jpaRepositoryType.addTypeArgument(modelType);
+//        jpaRepositoryType.addTypeArgument(PluginUtils.calculateKeyType(introspectedTable));
+//        interfaze.addSuperInterface(new FullyQualifiedJavaType(jpaRepositoryType.getShortName()));
+//        interfaze.addImportedType(jpaRepositoryType);
 
-        // 添加方法
-        // 逻辑删除方法
-//        addUpdateDeleted(interfaze, modelType);
-        
-        // TODO 添加 listWithoutBLOBs
-        // addSelectByExampleWithoutBLOBsMethod(interfaze);
+        // querydslPEType
+//        FullyQualifiedJavaType querydslPEType = new FullyQualifiedJavaType("org.springframework.data.querydsl.QuerydslPredicateExecutor");
+//        querydslPEType.addTypeArgument(modelType);
+//        interfaze.addSuperInterface(new FullyQualifiedJavaType(querydslPEType.getShortName()));
+//        interfaze.addImportedType(querydslPEType);
 
+        // 把文件添加到返回结果
         List<CompilationUnit> answer = new ArrayList<CompilationUnit>();
         if (context.getPlugins().clientGenerated(interfaze, null, introspectedTable)) {
             answer.add(interfaze);
         }
-
         return answer;
     }
     

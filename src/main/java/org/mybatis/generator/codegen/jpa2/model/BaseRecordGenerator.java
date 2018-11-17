@@ -36,6 +36,7 @@ import org.mybatis.generator.api.dom.java.TopLevelEnumeration;
 import org.mybatis.generator.codegen.AbstractJavaGenerator;
 import org.mybatis.generator.codegen.RootClassInfo;
 import org.mybatis.generator.internal.util.XsiliJavaBeansUtil;
+import org.mybatis.generator.xsili.GenHelper;
 
 /**
  * 
@@ -83,6 +84,16 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
             }
         }
 
+        // 获取BaseEntity中的field数组
+        java.lang.reflect.Field[] reflectFields = null;
+        FullyQualifiedJavaType baseEntityType = GenHelper.getBaseEntityType(getContext());
+        try {
+            Class<?> clazz = Class.forName(baseEntityType.getFullyQualifiedNameWithoutTypeParameters());
+            reflectFields = clazz.getDeclaredFields();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("初始化baseEntity失败", e);
+        }
+        
         List<CompilationUnit> answer = new ArrayList<CompilationUnit>();
         String rootClass = getRootClass();
         for (IntrospectedColumn introspectedColumn : introspectedColumns) {
@@ -91,13 +102,26 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
                 continue;
             }
             
-            // 枚举类
+            // 枚举类, by yepeng
             TopLevelEnumeration fieldEnumeration = XsiliJavaBeansUtil.getJavaBeansFieldEnum(topLevelClass, introspectedColumn, context, introspectedTable);
             if(fieldEnumeration != null) {
                 answer.add(fieldEnumeration);
             }
-            
             Field field = XsiliJavaBeansUtil.getJavaBeansField(introspectedColumn, context, introspectedTable, fieldEnumeration);
+
+            // 排查BaseEntity中的field
+            boolean isIncluded = false;
+            for (java.lang.reflect.Field reflectField : reflectFields) {
+                if (reflectField.getName().equals(field.getName())) {
+                    isIncluded = true;
+                    break;
+                }
+            }
+            if (isIncluded) {
+                continue;
+            }
+            
+            // field
             if (plugins.modelFieldGenerated(field, topLevelClass,
                     introspectedColumn, introspectedTable,
                     Plugin.ModelClassType.BASE_RECORD)) {
@@ -105,6 +129,7 @@ public class BaseRecordGenerator extends AbstractJavaGenerator {
                 topLevelClass.addImportedType(field.getType());
             }
 
+            // getter/setter
             Method method = XsiliJavaBeansUtil.getJavaBeansGetter(introspectedColumn, context, introspectedTable, fieldEnumeration);
             if (plugins.modelGetterMethodGenerated(method, topLevelClass,
                     introspectedColumn, introspectedTable,

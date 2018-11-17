@@ -81,12 +81,45 @@ public class GenHelper {
         return PluginUtils.getPropertyNotNull(introspectedTable.getContext(), Constants.KEY_UPDATED_TIME_FIELD);
     }
 
+    /**
+     * 
+     * @param context
+     * @return not null
+     */
     public static FullyQualifiedJavaType getBusinessExceptionType(Context context) {
         String businessExceptionName = context.getProperty(Constants.KEY_BUSINESS_EXCEPTION_QUALIFIED_NAME);
         if (StringUtils.isNotBlank(businessExceptionName)) {
             return new FullyQualifiedJavaType(businessExceptionName);
         } else {
             return new FullyQualifiedJavaType("java.lang.RuntimeException");
+        }
+    }
+    
+    /**
+     * 
+     * @param context
+     * @return maybe null
+     */
+    public static FullyQualifiedJavaType getBaseEntityType(Context context) {
+        String baseEntityName = context.getProperty(Constants.key_base_entity_qualified_name);
+        if (StringUtils.isNotBlank(baseEntityName)) {
+            return new FullyQualifiedJavaType(baseEntityName);
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * 
+     * @param context
+     * @return maybe null
+     */
+    public static FullyQualifiedJavaType getBaseDaoType(Context context) {
+        String baseDaoName = context.getProperty(Constants.key_base_dao_class_qualified_name);
+        if (StringUtils.isNotBlank(baseDaoName)) {
+            return new FullyQualifiedJavaType(baseDaoName);
+        } else {
+            return null;
         }
     }
     
