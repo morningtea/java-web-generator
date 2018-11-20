@@ -157,7 +157,7 @@ public class SimplePage<T> implements Serializable {
 	 * 
 	 * @return
 	 */
-	public boolean isFirst() {
+	public boolean getIsFirst() {
 		return pageNum <= 0;
 	}
 
@@ -166,7 +166,7 @@ public class SimplePage<T> implements Serializable {
 	 * 
 	 * @return
 	 */
-	public boolean isLast() {
+	public boolean getIsLast() {
 		return pageNum >= totalPage - 1;
 	}
     
