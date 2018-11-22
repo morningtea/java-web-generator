@@ -60,6 +60,7 @@ public class ServicePlugin extends PluginAdapter {
     
     private FullyQualifiedJavaType annotationAutowired = new FullyQualifiedJavaType("org.springframework.beans.factory.annotation.Autowired");
     private FullyQualifiedJavaType annotationService = new FullyQualifiedJavaType("org.springframework.stereotype.Service");
+    private FullyQualifiedJavaType annotationTransactional = new FullyQualifiedJavaType("org.springframework.transaction.annotation.Transactional");
 
     public ServicePlugin() {
         super();
@@ -158,8 +159,12 @@ public class ServicePlugin extends PluginAdapter {
         serviceImplClass.addSuperInterface(serviceInterfaceType);
         
         // 添加注解
-        serviceImplClass.addAnnotation("@Service(\"" + PluginUtils.lowerCaseFirstLetter(serviceInterfaceType.getShortName()) + "\")");
+        serviceImplClass.addAnnotation("@Service");
         serviceImplClass.addImportedType(annotationService);
+        if(introspectedTable.getTargetRuntime() == TargetRuntime.JPA2) {
+            serviceImplClass.addAnnotation("@Transactional");
+            serviceImplClass.addImportedType(annotationTransactional);
+        }
         
         // 日志
         addLoggerField(serviceImplClass);
