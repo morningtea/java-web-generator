@@ -37,8 +37,13 @@ public class BaseServiceImpl<T extends BaseEntity> implements BaseService<T> {
     @Autowired
     protected EntityManager entityManager;
 
-    @Override
-    public final T updateAll(T t) {
+    /**
+     * 更新所有字段
+     * 
+     * @param t
+     * @return
+     */
+    protected final T updateAll(T t) {
         if (t == null) {
             throw new BusinessException("参数t不能为空");
         }
@@ -50,8 +55,13 @@ public class BaseServiceImpl<T extends BaseEntity> implements BaseService<T> {
         return this.baseRepository.saveAndFlush(t);
     }
 
-    @Override
-    public final T updateNotNull(T t) {
+    /**
+     * 只更新not null字段
+     * 
+     * @param t
+     * @return
+     */
+    protected final T updateNotNull(T t) {
         if (t == null) {
             throw new BusinessException("参数t不能为空");
         }
