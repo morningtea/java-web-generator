@@ -117,7 +117,7 @@
 			<property name="targetProject" value="src/test/java" />
 			<property name="targetPackage" value="com.benma.test.business.mapper" />
 			<!-- 测试基类 -->
-			<property name="superTestCase" value="org.mybatis.generator.xsili.outputdependence.test.BaseTest" />
+			<property name="superTestCase" value="xsili.outputdependence.BaseTest" />
 		</plugin>
 		
 		<commentGenerator type="org.mybatis.generator.xsili.XsiliCommentGenerator">
