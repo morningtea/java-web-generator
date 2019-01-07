@@ -45,8 +45,9 @@
 		<log4j-api.version>2.3</log4j-api.version>
 		<commons-logging.version>1.2</commons-logging.version>
 		
-		<commons-lang.version>3.1</commons-lang.version>
 		<commons-collections.version>3.2.2</commons-collections.version>
+		<commons-lang.version>3.1</commons-lang.version>
+		<jackson.version>2.9.1</jackson.version>
 		
 		<ant.version>1.9.9</ant.version>
 		<javaparser-core.version>2.4.0</javaparser-core.version>
@@ -185,6 +186,11 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>${commons-lang.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.dataformat</groupId>
+			<artifactId>jackson-dataformat-xml</artifactId>
+			<version>${jackson.version}</version>
 		</dependency>
 		
 		<dependency>

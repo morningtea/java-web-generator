@@ -46,6 +46,8 @@ public class XsiliJavaBeansUtil extends JavaBeansUtil {
         super();
     }
 
+    private static FullyQualifiedJavaType jsonXmlUtilType = new FullyQualifiedJavaType("org.mybatis.generator.xsili.outputdependence.BenmaJsonXmlUtil");
+
     private static final Pattern ENUM_PATTERN = Pattern.compile("\\{\\s*?enum:(.*)\\}");
     private static final Pattern ENUM_ITEM_PATTERN = Pattern.compile("(.*?)\\((.*?)\\)");
     private static final String ENUM_ITEM_SEPARATOR = ",|，";
@@ -167,9 +169,12 @@ public class XsiliJavaBeansUtil extends JavaBeansUtil {
                 checkMethod.setReturnType(enumClassType);
                 checkMethod.addParameter(new Parameter(FullyQualifiedJavaType.getStringInstance(), "name"));
                 checkMethod.addBodyLine(enumClassType.getShortName() + " enums = " + "getEnum(name);");
+                // 输出所有枚举项(json)
                 checkMethod.addBodyLine("if (enums == null) {");
-                checkMethod.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"请选择正确的枚举类型, "
-                                        + enumItemList + "\");");
+                // 导入json工具类
+                topLevelEnumeration.addImportedType(jsonXmlUtilType);
+                checkMethod.addBodyLine("throw new " + businessExceptionType.getShortName() + "(\"请选择正确的枚举类型: \" + "
+                                        + jsonXmlUtilType.getShortName() + ".toJson(" + enumClassType.getShortName() + ".values()));");
                 checkMethod.addBodyLine("}");
                 checkMethod.addBodyLine("return enums;");
 
